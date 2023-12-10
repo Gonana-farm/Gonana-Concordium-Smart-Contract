@@ -5,8 +5,6 @@
 use concordium_std::*;
 use core::fmt::Debug;
 use concordium_std::Amount;
-use rand::prelude::*;
-
 
 
 /// Enum representing the possible states of a product
@@ -14,14 +12,13 @@ use rand::prelude::*;
 pub enum ProductState {
     Listed,
     Released,
-    Shipped,
+    Confirmed,
     Cancelled,
 }
 
 // Struct to represent a product listing.
-#[derive(Serialize, SchemaType,  Clone)]
+#[derive(Serialize, Clone, SchemaType, PartialEq, Eq, Debug)]
 pub struct ProductListing {
-    pub id: u128,  // Unique identifier for the listing
     pub farmer: AccountAddress,
     pub product: String,
     pub price: Amount,
@@ -46,11 +43,21 @@ pub struct Escrow {
 
 
 /// Smart contract state
-#[derive( Serialize, SchemaType,  Clone)]
-pub struct State {
-    pub product_listings: Vec<ProductListing>,
-    pub orders: Vec<Order>,
-    pub escrows: Vec<Escrow>,
+#[derive(Serial, DeserialWithState)]
+#[concordium(state_parameter = "S")]
+pub struct State<S = StateApi>  {
+    pub product_listings: StateMap<String,ProductListing, S>,
+    pub orders: StateMap<String,Order,S>,
+    pub escrows: StateMap<String,Escrow,S>,
+}
+
+impl<S: HasStateApi> State<S> {
+    pub fn get_product_by_name(&self, product_name: &String) -> Result<ProductListing, MarketplaceError> {
+        self.product_listings
+            .get(product_name)
+            .ok_or(MarketplaceError::ProductNotFound)
+            .map(|product| product.clone())
+    }
 }
 
 /// Error types
@@ -58,12 +65,11 @@ pub struct State {
 pub enum MarketplaceError {
     ProductNotFound,
     OrderNotFound,
+    OrderAlreadyExists,
     EscrowNotFound,
-    InvalidCaller,
     InvalidProductState,
     InsufficientFunds,
     InvalidPrice,
-    RandomGenerationError,
     #[from(ParseError)]
     ParseParams,
     #[from(TransferError)]
@@ -79,23 +85,23 @@ pub struct ListProductParameter{
 
 #[derive(Serialize, SchemaType)]
 pub struct CancelProductParameter{
-    pub product: String,
+    pub product_name: String,
 }
 
 #[derive(Serialize, SchemaType)]
 pub struct PlaceOrderParameter {
-    pub product_id: u128,
+    pub product_name: String,
     pub buyer:AccountAddress,
     pub price: Amount
 }
 
 // Init function to initialize the marketplace state
 #[init(contract = "gonana_marketplace")]
-fn init(_ctx: &InitContext, _state_builder: &mut StateBuilder) -> InitResult<State>{
+fn init(_ctx: &InitContext, state_builder: &mut StateBuilder) -> InitResult<State>{
     Ok(State { 
-         product_listings: Vec::new(),
-        orders: Vec::new(),
-        escrows: Vec::new(),
+         product_listings: state_builder.new_map(),
+        orders: state_builder.new_map(),
+        escrows: state_builder.new_map(),
      })
 }
 
@@ -103,12 +109,9 @@ fn init(_ctx: &InitContext, _state_builder: &mut StateBuilder) -> InitResult<Sta
 /// Function to list a product in the marketplace
 #[receive(contract = "gonana_marketplace", name = "list_product", parameter = "ListProductParameter", mutable )]
 fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
-    let parameter: ListProductParameter= ctx.parameter_cursor().get()?;
+    let parameter: ListProductParameter = ctx.parameter_cursor().get()?;
    
- // Generate a unique ID for the product listing using the rand crate
- let id: u128 = random();
-
-    //check if the price is 0
+    // Check if the price is 0
     if parameter.price <= Amount::zero() {
         return Err(MarketplaceError::InvalidPrice);
     }
@@ -119,175 +122,138 @@ fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mark
     }
 
     let listing = ProductListing {
-        id,
         farmer: parameter.farmer,
-        product: parameter.product,
+        product: parameter.product.clone(),
         price: parameter.price,
-        state: ProductState::Listed
+        state: ProductState::Listed,
     };
-        host.state_mut().product_listings.push(listing);
-        Ok(()) 
+    
+    host.state_mut().product_listings.insert(parameter.product.clone(), listing);
+
+    Ok(()) 
 }
+
 
 
 /// Function to cancel or unlist a product
 #[receive(contract = "gonana_marketplace", name = "cancel_product", parameter = "CancelProductParameter", mutable )]
 fn cancel_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
-    let parameter: CancelProductParameter= ctx.parameter_cursor().get()?;
-    let product = parameter.product;
-
-
-    let mut listing = host.state_mut().product_listings.iter_mut().find(|l| l.product == product)
-    .ok_or(MarketplaceError::ProductNotFound)?;
-
-     // Check if the product is in a cancellable state
-     match listing.state {
-        ProductState::Listed | ProductState::Released => {
-            listing.state = ProductState::Cancelled;
-            Ok(())
-        }
-        _ => Err(MarketplaceError::InvalidProductState),
-    }
-}
-
-
-/// Function to place an order and create an escrow
-#[receive(contract = "gonana_marketplace", name="place_order", parameter = "PlaceOrderParameter", mutable, payable)]
-fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, _amount: Amount) -> Result<(), MarketplaceError>{
-    let parameter : PlaceOrderParameter = ctx.parameter_cursor().get()?;
-
-     // Check if the product ID is valid
-    // if host.state_mut().product_listings.iter().find(|listing| listing.id == parameter.product_id)
-    // .is_none() {
-    //     return Err(MarketplaceError::ProductNotFound);
-    // }
-
-    // Find the product by ID
-    if let Some(product) = host.state_mut().product_listings.clone().iter_mut().find(|p| p.id == parameter.product_id) {
-        // Check if the product is in a valid state for placing an order
-        if product.state != ProductState::Listed {
-            return Err(MarketplaceError::InvalidProductState);
-        }
-        
-         // Create an order
-         let order = Order {
-            buyer: parameter.buyer,
-            product: product.product.clone(),
-            price: parameter.price,
-        };
-
-         // Deduct the order amount from the buyer's account
-         host.invoke_transfer(&product.farmer, parameter.price)?;
-
-          // Add the order to the orders list
-        host.state_mut().orders.push(order);
-
-          // Update the product state to Released
-          product.state = ProductState::Released;
-
-           // Create an escrow
-        let escrow = Escrow {
-            funds: parameter.price,
-            product: product.product.clone(),
-            buyer: parameter.buyer,
-        };
-
-        // Add the escrow to the escrows list
-        host.state_mut().escrows.push(escrow);
-
-        Ok(())
-    } else {
-        // Product not found
-        Err(MarketplaceError::ProductNotFound)
-    }
-
- 
-}
-
-
-
-/// Function to release a product in the marketplace
-#[receive(contract = "gonana_marketplace", name = "release_product", parameter = "CancelProductParameter", mutable)]
-fn release_product(ctx:&ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>  {
     let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
+    let product_name = parameter.product_name.clone();
 
-    // Check if the product name is not empty
-    if parameter.product.is_empty() {
-        return Err(MarketplaceError::ParseParams);
-    }
-
-     // Find the product by name
-     if let Some(product) = host.state_mut().product_listings.iter_mut().find(|p| p.product == parameter.product) {
-        // Check if the product is in a valid state for releasing
-        if product.state != ProductState::Released {
-            return Err(MarketplaceError::InvalidProductState);
+    // Check if the product is found
+    if let Some(mut listing) = host.state_mut().product_listings.get_mut(&product_name) {
+        // Check if the product is in a cancellable state
+        match listing.state {
+            ProductState::Listed | ProductState::Released => {
+                listing.state = ProductState::Cancelled;
+                Ok(())
+            }
+            _ => Err(MarketplaceError::InvalidProductState),
         }
-
-        // Update the product state to Shipped
-        product.state = ProductState::Shipped;
-
-        Ok(())
     } else {
         // Product not found
         Err(MarketplaceError::ProductNotFound)
     }
-    
 }
+
+#[receive(contract = "gonana_marketplace", name="place_order", parameter = "PlaceOrderParameter", mutable, payable)]
+fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> Result<(), MarketplaceError> {
+    let parameter: PlaceOrderParameter = ctx.parameter_cursor().get()?;
+
+      // Find the product by name using the new method
+    let mut product = host.state().get_product_by_name(&parameter.product_name)?;
+       
+
+        // Ensure that the product is in a valid state for placing an order
+    ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);
+    
+      // Ensure that the order price is greater than zero
+      ensure!(parameter.price > Amount::zero(), MarketplaceError::InvalidPrice);
+
+      // Ensure that the buyer has enough funds
+     // Ensure that the buyer has enough funds
+     ensure!(parameter.price <= amount, MarketplaceError::InsufficientFunds);
+
+
+     // Create an order
+     let order = Order {
+        buyer: parameter.buyer,
+        product: product.product.clone(),
+        price: parameter.price,
+    };
+
+   // Deduct the order amount from the buyer's account
+   host.invoke_transfer(&product.farmer, parameter.price)?;
+
+   // Insert the order and update the product state to Released in one statement
+   if host.state_mut().orders.insert(parameter.product_name.clone(), order).is_none() {
+    // If the insert is successful, update the product state
+    product.state = ProductState::Released;
+    Ok(())
+} else {
+    // Handle the case when the order already exists
+    Err(MarketplaceError::OrderAlreadyExists)
+}
+
+}
+
 
 
 
 /// Function to confirm an escrow in the marketplace
-#[receive( contract = "gonana_marketplace", name = "confirm_escrow", parameter = "CancelProductParameter", mutable )]
-fn confirm_escrow(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
+#[receive(contract = "gonana_marketplace", name = "confirm_escrow", parameter = "CancelProductParameter", mutable)]
+fn confirm_escrow(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError> {
     let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
+    let product_name = parameter.product_name.clone();
 
-    // Check if the product name is not empty
-    if parameter.product.is_empty() {
-        return Err(MarketplaceError::ParseParams);
-    }
+     // Find the product by name
+     let mut product = {
+        let state = host.state_mut();
+        state.product_listings.remove_and_get(&product_name).ok_or(MarketplaceError::ProductNotFound)?
+    };
 
-      // Find the product by name
-    if let Some(product) = host.state_mut().product_listings.clone().iter_mut().find(|p| p.product == parameter.product) {
-        // Check if the product is in a valid state for confirming the escrow
-        if product.state != ProductState::Cancelled {
-            return Err(MarketplaceError::InvalidProductState);
-        }
+     // Ensure that the product is in a valid state for confirming the escrow
+     ensure!(product.state == ProductState::Released, MarketplaceError::InvalidProductState);
 
-        // Find the corresponding escrow
-        if let Some(escrow_index) = host.state_mut().escrows.iter().position(|e| e.product == parameter.product) {
-            let escrow = host.state_mut().escrows.remove(escrow_index);
+   // Remove the escrow and get its value
+   if let Some(escrow) = host.state_mut().escrows.remove_and_get(&product_name) {
+    // Transfer funds
+    host.invoke_transfer(&product.farmer, escrow.funds)?;
 
-            // Transfer the funds from the escrow to the farmer's account
-            host.invoke_transfer(&product.farmer, escrow.funds)?;
+    // It's important to call `Deletable::delete` on the value
+    escrow.delete();
+    // If the removal is successful, update the product state
+    product.state = ProductState::Confirmed;
 
-            Ok(())
-        } else {
-            // Escrow not found
-            Err(MarketplaceError::EscrowNotFound)
-        }
-    } else {
-        // Product not found
-        Err(MarketplaceError::ProductNotFound)
-    }
-   
+    Ok(())
+} else {
+    // Escrow not found
+    Err(MarketplaceError::EscrowNotFound)
+}
 }
 
 
-
-// View function to get all product listings
+// // View function to get all product listings
 #[receive(contract = "gonana_marketplace", name = "view_product_listings", return_value = "Vec<ProductListing>")]
 fn view_product_listings(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<ProductListing>> {
-    Ok(host.state().product_listings.clone())
+    let state = host.state();
+    let product_listings: Vec<ProductListing> = state.product_listings.iter().map(|(_, product)| product.clone()).collect();
+    Ok(product_listings)
 }
 
-// View function to get all orders
+// // View function to get all orders
 #[receive(contract = "gonana_marketplace", name = "view_orders", return_value = "Vec<Order>")]
 fn view_orders(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<Order>> {
-    Ok(host.state().orders.clone())
+    let state = host.state();
+    let orders: Vec<Order> = state.orders.iter().map(|(_, order)| order.clone()).collect();
+    Ok(orders)
 }
 
-// View function to get all escrows
+// // View function to get all escrows
 #[receive(contract = "gonana_marketplace", name = "view_escrows", return_value = "Vec<Escrow>")]
 fn view_escrows(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<Escrow>> {
-    Ok(host.state().escrows.clone())
+    let state = host.state();
+    let escrows: Vec<Escrow> = state.escrows.iter().map(|(_, escrow)| escrow.clone()).collect();
+    Ok(escrows)
 }

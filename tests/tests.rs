@@ -36,9 +36,10 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess) {
 
     (chain, initialization)
 }
-/// Test listing a product in the marketplace.
+// Test listing a product in the marketplace.
+// Test placing an order in the marketplace.
 #[test]
-fn test_list_product() {
+fn test_place_order() {
     let (mut chain, init) = setup_chain_and_contract();
 
     // List a product in the marketplace.
@@ -62,12 +63,12 @@ fn test_list_product() {
         )
         .expect("List product succeeds.");
 
-    // Verify that the product is listed.
+    // View the product listings
     let product_listings: Vec<ProductListing> =
         chain.contract_update(SIGNER, ALICE,  Address::Account(ALICE),  Energy::from(10000), UpdateContractPayload {
             amount: Amount::zero(),
             address: init.contract_address,
-            receive_name: OwnedReceiveName::new_unchecked("ccdpiggybank.insert".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.view_product_listings".to_string()),
             message: OwnedParameter::empty(),
         },)
             .expect("View product listings succeeds.")
@@ -76,4 +77,30 @@ fn test_list_product() {
 
     assert_eq!(product_listings.len(), 1);
     assert_eq!(product_listings[0].product, "Apples");
+
+    // Place an order in the marketplace.
+    chain
+        .contract_update(
+            SIGNER,
+            ALICE,
+            ALICE_ADDR,
+            Energy::from(10_000),
+            UpdateContractPayload {
+                address:      init.contract_address,
+                amount:       Amount::from_ccd(200),
+                receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.place_order".to_string()),
+                message:      OwnedParameter::from_serial(&PlaceOrderParameter {
+                    product_name: "Apples".to_string(),
+                    buyer: ALICE,
+                    price: Amount::from_ccd(100),
+                })
+                .expect("Parameter within size bounds"),
+            },
+        )
+        .expect_err("Place order succeeds.");
 }
+
+
+
+
+
