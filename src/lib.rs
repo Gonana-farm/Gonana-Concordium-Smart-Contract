@@ -232,3 +232,22 @@ fn view_orders(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<O
     Ok(orders)
 }
 
+
+//list_product
+//concordium-client contract update  gonana_marketplace_instance --entrypoint list_product --parameter-json ./list_product.json --schema ./schema.bin --sender TimConcordiumWallet  --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//cancel_product
+//concordium-client contract update  gonana_marketplace_instance --entrypoint cancel_product --parameter-json ./cancel_product.json --schema ./schema.bin --sender TimConcordiumWallet  --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//view product_listings
+//concordium-client contract invoke   gonana_marketplace_instance --entrypoint view_product_listings --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//view orders
+// concordium-client contract invoke   gonana_marketplace_instance --entrypoint view_orders --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//place_orders
+//concordium-client contract update  gonana_marketplace_instance --entrypoint place_order --parameter-json ./place_order.json --amount 1000 --schema ./schema.bin --sender TimConcordiumWallet  --energy 3000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+
+//confirm_orders
+//concordium-client contract update  gonana_marketplace_instance --entrypoint confirm_order --parameter-json ./place_order.json  --schema ./schema.bin --sender TimConcordiumWallet  --energy 3000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
