@@ -1,5 +1,3 @@
-
-
 // ProductListing struct
 #[derive(Debug, Clone)]
 pub struct ProductListing {
@@ -7,8 +5,6 @@ pub struct ProductListing {
     pub product: String,
     pub price: u64,
 }
-
-
 
 
 
@@ -23,7 +19,6 @@ pub struct Order {
 
 
 
-
 // ProductState enum
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ProductState {
@@ -32,8 +27,6 @@ pub enum ProductState {
     Confirmed,
     Cancelled,
 }
-
-
 
 
 

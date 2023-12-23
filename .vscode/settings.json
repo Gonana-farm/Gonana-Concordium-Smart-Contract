@@ -1,3 +1,7 @@
 {
-  "editor.inlineSuggest.showToolbar": "onHover"
+  "editor.inlineSuggest.showToolbar": "onHover",
+  "rust-analyzer.linkedProjects": [
+    "./deploy-scripts/Cargo.toml",
+    "./deploy-scripts/Cargo.toml"
+  ]
 }

@@ -36,8 +36,6 @@ pub struct Order {
 }
 
 
-
-
 /// Error types
 #[derive(Debug, PartialEq, Eq, Clone, Reject, Serialize, SchemaType)]
 pub enum MarketplaceError {
@@ -51,6 +49,11 @@ pub enum MarketplaceError {
     ParseParams,
     #[from(TransferError)]
     TransferError,
+    NonceAlreadyUsed,
+    WrongContract,
+    Expired,
+    WrongFunctionCall,
+    WrongSignature
 }
 
 #[derive(Serialize, SchemaType)]
@@ -65,6 +68,127 @@ pub struct CancelProductParameter{
     pub product_name: String,
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/// List of supported entrypoints by the `permit` function (CIS3 standard).
+//const SUPPORTS_PERMIT_ENTRYPOINTS: [EntrypointName; 2] =
+    //[EntrypointName::new_unchecked("updateOperator"), EntrypointName::new_unchecked("list_product")];
+
+/// Tag for the CIS3 Nonce event.
+pub const NONCE_EVENT_TAG: u8 = u8::MAX - 5;
+
+/// Tagged events to be serialized for the event log.
+#[derive(Debug, Serial, Deserial, PartialEq, Eq)]
+#[concordium(repr(u8))]
+pub enum Event {
+    /// The event tracks the nonce used by the signer of the `PermitMessage`
+    /// whenever the `permit` function is invoked.
+    #[concordium(tag = 250)]
+    Nonce(NonceEvent),
+}
+
+/// The NonceEvent is logged when the `permit` function is invoked. The event
+/// tracks the nonce used by the signer of the `PermitMessage`.
+#[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
+pub struct NonceEvent {
+    /// Account that signed the `PermitMessage`.
+    pub account: AccountAddress,
+    /// The nonce that was used in the `PermitMessage`.
+    pub nonce:   u64,
+}
+
+
+// Implementing a custom schemaType to the `Event` combining all CIS2/CIS3
+// events.
+impl schema::SchemaType for Event {
+    fn get_type() -> schema::Type {
+        let mut event_map = collections::BTreeMap::new();
+        event_map.insert(
+            NONCE_EVENT_TAG,
+            (
+                "Nonce".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("account"), AccountAddress::get_type()),
+                    (String::from("nonce"), u64::get_type()),
+                ]),
+            ),
+        );
+        schema::Type::TaggedEnum(event_map)
+    }
+}
+
+
+/// Part of the parameter type for the contract function `permit`.
+/// Specifies the message that is signed.
+#[derive(SchemaType, Serialize)]
+pub struct PermitMessage {
+    /// The contract_address that the signature is intended for.
+    pub contract_address: ContractAddress,
+    /// A nonce to prevent replay attacks.
+    pub nonce:            u64,
+    /// A timestamp to make signatures expire.
+    pub timestamp:        Timestamp,
+    /// The entry_point that the signature is intended for.
+    pub entry_point:      OwnedEntrypointName,
+    /// The serialized payload that should be forwarded to either the `transfer`
+    /// or the `updateOperator` function.
+    #[concordium(size_length = 2)]
+    pub payload:          Vec<u8>,
+}
+
+/// The parameter type for the contract function `permit`.
+/// Takes a signature, the signer, and the message that was signed.
+#[derive(Serialize, SchemaType)]
+pub struct PermitParam {
+    /// Signature/s. The CIS3 standard supports multi-sig accounts.
+    pub signature: AccountSignatures,
+    /// Account that created the above signature.
+    pub signer:    AccountAddress,
+    /// Message that was signed.
+    pub message:   PermitMessage,
+}
+
+#[derive(Serialize)]
+pub struct PermitParamPartial {
+    /// Signature/s. The CIS3 standard supports multi-sig accounts.
+    signature: AccountSignatures,
+    /// Account that created the above signature.
+    signer:    AccountAddress,
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #[derive(Serialize, SchemaType)]
 pub struct PlaceOrderParameter {
     pub product_name: String,
@@ -72,14 +196,35 @@ pub struct PlaceOrderParameter {
     pub seller: AccountAddress,
 }
 
-
 /// Smart contract state
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 pub struct State<S = StateApi>  {
     pub product_listings: StateMap<String,ProductListing, S>,
     pub orders: StateMap<String,Order,S>,
+    nonces_registry:  StateMap<AccountAddress, u64, S>,
+
 }
+
+// impl State{
+
+//     fn list_product(&mut self, farmer: AccountAddress, product: String, price: Amount) -> Result<(),MarketplaceError>{
+//         let listing = ProductListing {
+//             farmer,
+//             product: product.clone(),
+//             price,
+//             state:ProductState::Listed
+//         };
+//         self.product_listings.insert(product,listing);
+//         Ok(())
+//     }
+
+// }
+
+
+
+
+
 
 
 // Init function to initialize the marketplace state
@@ -88,8 +233,227 @@ fn init(_ctx: &InitContext, state_builder: &mut StateBuilder) -> InitResult<Stat
     Ok(State { 
             product_listings: state_builder.new_map(),
             orders: state_builder.new_map(),
+            nonces_registry:  state_builder.new_map(),
      })
 }
+
+// internal list function that will be executed by the permit message
+fn internal_list_product(host: &mut Host<State>,params:ListProductParameter) -> Result<(),MarketplaceError>{
+    let (state, _builder) = host.state_and_builder();
+    
+    let listing = ProductListing {
+        farmer: params.farmer,
+        product: params.product.clone(),
+        price: params.price,
+        state:ProductState::Listed
+    };
+    state.product_listings.insert(params.product,listing);
+    Ok(())
+}
+
+/// Response type for the function `publicKeyOf`.
+#[derive(Debug, Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct PublicKeyOfQueryResponse(
+    #[concordium(size_length = 2)] pub Vec<Option<AccountPublicKeys>>,
+);
+
+impl From<Vec<Option<AccountPublicKeys>>> for PublicKeyOfQueryResponse {
+    fn from(results: concordium_std::Vec<Option<AccountPublicKeys>>) -> Self {
+        PublicKeyOfQueryResponse(results)
+    }
+}
+
+/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
+/// for the public key/nonce of a given account.
+#[derive(Debug, Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct VecOfAccountAddresses {
+    /// List of queries.
+    #[concordium(size_length = 2)]
+    pub queries: Vec<AccountAddress>,
+}
+
+/// Get the public keys of accounts. `None` is returned if the account does not
+/// exist on chain.
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "gonana_marketplace",
+    name = "publicKeyOf",
+    parameter = "VecOfAccountAddresses",
+    return_value = "PublicKeyOfQueryResponse",
+    error = "ContractError"
+)]
+fn contract_public_key_of(
+    ctx: &ReceiveContext,
+    host: &Host<State>,
+) -> Result<PublicKeyOfQueryResponse,MarketplaceError> {
+    // Parse the parameter.
+    let params: VecOfAccountAddresses = ctx.parameter_cursor().get()?;
+    // Build the response.
+    let mut response: Vec<Option<AccountPublicKeys>> = Vec::with_capacity(params.queries.len());
+    for account in params.queries {
+        // Query the public_key.
+        let public_keys = host.account_public_keys(account).ok();
+
+        response.push(public_keys);
+    }
+    let result = PublicKeyOfQueryResponse::from(response);
+    Ok(result)
+}
+
+/// Response type for the function `nonceOf`.
+#[derive(Debug, Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct NonceOfQueryResponse(#[concordium(size_length = 2)] pub Vec<u64>);
+
+impl From<Vec<u64>> for NonceOfQueryResponse {
+    fn from(results: concordium_std::Vec<u64>) -> Self { NonceOfQueryResponse(results) }
+}
+
+/// Get the nonces of accounts.
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "gonana_marketplace",
+    name = "nonceOf",
+    parameter = "VecOfAccountAddresses",
+    return_value = "NonceOfQueryResponse",
+    error = "MaketplaceError"
+)]
+fn contract_nonce_of(
+    ctx: &ReceiveContext,
+    host: &Host<State>,
+) -> Result<NonceOfQueryResponse,MarketplaceError> {
+    // Parse the parameter.
+    let params: VecOfAccountAddresses = ctx.parameter_cursor().get()?;
+    // Build the response.
+    let mut response: Vec<u64> = Vec::with_capacity(params.queries.len());
+    for account in params.queries {
+        // Query the next nonce.
+        let nonce = host.state().nonces_registry.get(&account).map(|nonce| *nonce).unwrap_or(0);
+
+        response.push(nonce);
+    }
+    Ok(NonceOfQueryResponse::from(response))
+}
+
+
+
+/// Helper function to calculate the `message_hash`.
+#[receive(
+    contract = "gonana_marketplace",
+    name = "viewMessageHash",
+    parameter = "PermitParam",
+    return_value = "[u8;32]",
+    crypto_primitives,
+    mutable
+)]
+fn contract_view_message_hash(
+    ctx: &ReceiveContext,
+    _host: &mut Host<State>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<[u8; 32],MarketplaceError> {
+    // Parse the parameter.
+    let mut cursor = ctx.parameter_cursor();
+    // The input parameter is `PermitParam` but we only read the initial part of it
+    // with `PermitParamPartial`. I.e. we read the `signature` and the
+    // `signer`, but not the `message` here.
+    let param: PermitParamPartial = cursor.get()?;
+
+    // The input parameter is `PermitParam` but we have only read the initial part
+    // of it with `PermitParamPartial` so far. We read in the `message` now.
+    // `(cursor.size() - cursor.cursor_position()` is the length of the message in
+    // bytes.
+    let mut message_bytes = vec![0; (cursor.size() - cursor.cursor_position()) as usize];
+
+    cursor.read_exact(&mut message_bytes)?;
+
+    // The message signed in the Concordium browser wallet is prepended with the
+    // `account` address and 8 zero bytes. Accounts in the Concordium browser wallet
+    // can either sign a regular transaction (in that case the prepend is
+    // `account` address and the nonce of the account which is by design >= 1)
+    // or sign a message (in that case the prepend is `account` address and 8 zero
+    // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
+    // sign a transaction. The account nonce is of type u64 (8 bytes).
+    let mut msg_prepend = [0; 32 + 8];
+    // Prepend the `account` address of the signer.
+    msg_prepend[0..32].copy_from_slice(param.signer.as_ref());
+    // Prepend 8 zero bytes.
+    msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
+    // Calculate the message hash.
+    let message_hash =
+        crypto_primitives.hash_sha2_256(&[&msg_prepend[0..40], &message_bytes].concat()).0;
+
+    Ok(message_hash)
+}
+
+
+#[receive(
+    contract = "gonana_marketplace",
+    name = "permit",
+    parameter = "PermitParam",
+    crypto_primitives,
+    mutable,
+    enable_logger
+)]
+fn contract_permit(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut impl HasLogger,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<(),MarketplaceError> {
+
+    // Parse the parameter.
+    let param: PermitParam = ctx.parameter_cursor().get()?;
+
+    // Update the nonce.
+    let mut entry = host.state_mut().nonces_registry.entry(param.signer).or_insert_with(|| 0);
+
+    // Get the current nonce.
+    let nonce = *entry;
+    // Bump nonce.
+    *entry += 1;
+    drop(entry);
+
+    let message = param.message;
+
+    // Check the nonce to prevent replay attacks.
+    ensure_eq!(message.nonce, nonce, MarketplaceError::NonceAlreadyUsed);
+
+     // Check that the signature was intended for this contract.
+     ensure_eq!(
+        message.contract_address,
+        ctx.self_address(),
+        MarketplaceError::WrongContract.into()
+    );
+    // Check signature is not expired.
+    ensure!(message.timestamp > ctx.metadata().slot_time(), MarketplaceError::Expired.into());
+    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+
+    // Check signature.
+    let valid_signature =host.check_account_signature(param.signer, &param.signature, &message_hash)
+        .expect("account signature was incorrect");
+    ensure!(valid_signature, MarketplaceError::WrongSignature);
+
+    if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("internal_list_product") {
+        let params: ListProductParameter = from_bytes(&message.payload).expect("could not unwrap payload");
+        let response = internal_list_product(host, params)?;
+        // Log the nonce event.
+        logger.log(&Event::Nonce(NonceEvent {
+            account: param.signer,
+            nonce,
+        })).expect("events could not be logged");
+        Ok(response)
+    }else{
+        Err(MarketplaceError::WrongFunctionCall)
+    }
+
+}
+
 
 
 /// Function to list a product in the marketplace
@@ -178,6 +542,7 @@ fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> 
 }
 
 
+
 //function to confirm an escrow 
 #[receive(contract = "gonana_marketplace", name = "confirm_order", parameter = "PlaceOrderParameter", mutable)]
 fn confirm_order(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError> {
@@ -213,6 +578,7 @@ fn confirm_order(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mar
         Err(MarketplaceError::OrderNotFound)
     }
 }
+
 
 
 
