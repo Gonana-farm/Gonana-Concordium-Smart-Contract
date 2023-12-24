@@ -771,8 +771,11 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
+ "concordium-contracts-common",
  "concordium-rust-sdk",
+ "concordium_base",
  "gonana_concordium_smart_contract",
+ "hex",
  "tokio",
 ]
 

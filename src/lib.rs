@@ -56,6 +56,7 @@ pub enum MarketplaceError {
     WrongSignature
 }
 
+
 #[derive(Serialize, SchemaType)]
 pub struct ListProductParameter{
     pub farmer: AccountAddress,

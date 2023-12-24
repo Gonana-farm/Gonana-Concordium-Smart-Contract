@@ -421,9 +421,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-rust-sdk"
-version = "3.1.0"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3f81c1c579e8986288154d373fc54614b82170841773841c4276d6a7b6d16b25"
+checksum = "caefb718c361bfa655f2dced8d35be1c5355a90b93418145e34781fa4d4566c4"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -447,6 +447,7 @@ dependencies = [
  "sha2 0.10.8",
  "thiserror",
  "tokio",
+ "tokio-stream",
  "tonic",
 ]
 
@@ -518,9 +519,9 @@ dependencies = [
 
 [[package]]
 name = "concordium_base"
-version = "3.1.1"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce5097364c82620915ea043747fa132f87497bc57c8fe6fa74b21d0fc1b22723"
+checksum = "bc958a44f995791e61d33867f8345df5c4d8f6c3c6cac5320452d4b1b9418011"
 dependencies = [
  "aes",
  "anyhow",
@@ -966,6 +967,7 @@ checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
 name = "gonana_concordium_smart_contract"
 version = "0.1.0"
 dependencies = [
+ "concordium-rust-sdk",
  "concordium-smart-contract-testing",
  "concordium-std",
 ]

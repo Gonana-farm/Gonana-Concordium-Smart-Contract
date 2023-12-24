@@ -11,4 +11,7 @@ chrono = "0.4.26"
 tokio = {version = "1.18", features = ["rt", "macros", "rt-multi-thread"] }
 clap = { version = "4", features = ["derive", "env"]}
 concordium-rust-sdk="3"
+concordium_base = "3.2.0"
 gonana_concordium_smart_contract = {path = "../"}
+hex = "0.4.3"
+concordium-contracts-common = "8.1.1"

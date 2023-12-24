@@ -4,21 +4,26 @@ use clap::Parser;
 use concordium_rust_sdk::{
     common::types::Amount,
     smart_contracts::{
-        common::{self as contracts_common},
+        common::{self as contracts_common, Timestamp, OwnedEntrypointName, AccountSignatures},
         types::{OwnedContractName, OwnedParameter, OwnedReceiveName},
     },
     types::{
         smart_contracts::{ModuleReference, WasmModule},
         transactions,
-        transactions::{send::GivenEnergy, InitContractPayload},
+        transactions::{send::GivenEnergy, InitContractPayload}, ContractAddress,
     },
     v2,
 };
+use contracts_common::AccountAddress;
 use deployer::{DeployResult, Deployer, InitResult};
 use std::{
     io::Cursor,
-    path::{Path, PathBuf},
+    path::{Path, PathBuf}, str::FromStr,
 };
+use concordium_base::ed25519::SecretKey;
+use concordium_base::web3id::Web3IdSigner;
+use concordium_contracts_common::CredentialSignatures;
+use concordium_contracts_common::Signature;
 
 /// Reads the wasm module from a given file path.
 fn get_wasm_module(file: &Path) -> Result<WasmModule, Error> {
@@ -88,7 +93,7 @@ async fn main() -> Result<(), Error> {
 
     let param: OwnedParameter = OwnedParameter::empty(); // Example
 
-    let init_method_name: &str = "init_gonana_concordium_smart_contract"; // Example
+    let init_method_name: &str = "init_gonana_marketplace"; // Example
 
     let payload = InitContractPayload {
         init_name: OwnedContractName::new(init_method_name.into())?,
@@ -103,18 +108,74 @@ async fn main() -> Result<(), Error> {
         .context("Failed to initialize the contract.")?; // Example
 
     // This is how you can use a type from your smart contract.
-    use gonana_concordium_smart_contract::MyInputType; // Example
+    use gonana_concordium_smart_contract::{ListProductParameter,PermitMessage,PermitParam}; // Example
 
-    let input_parameter: MyInputType = false; // Example
+    let farmer = contracts_common::AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap();
+
+    let list_parameter =  ListProductParameter {
+        farmer,
+        price : Amount::from_ccd(10),
+        product: "2000 Strawberrys".into()
+    }; // Example
+
+    let permit_message = PermitMessage{
+        contract_address: ContractAddress::new(7552, 0),
+        nonce: 0,
+        timestamp: Timestamp::from_timestamp_millis(600000000),
+        entry_point: OwnedEntrypointName::new_unchecked("internal_list_product".into()),
+        payload: concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter),
+    };
+
+    //change secret key to bytes
+    let hex_string = "b5ad8b9e098d81bab8a6c7db970b899e036a4d69ab046c6a66caf84c91ba906f0a79b37eff8a99ad2b6792ab8d560825";
+    let bytes = hex::decode(hex_string).unwrap();
+    let mut byte_array = [0u8; 32];
+    for (index, &byte) in bytes.iter().enumerate() {
+        byte_array[index] = byte;
+    }
+    // get secret key from byte array
+    let key = SecretKey::from_bytes(&byte_array)?;
+    // change list_parameter to bytes
+    let serialized_list_param = concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter);
+    // sign the list parameter
+    let signature = key.sign(&serialized_list_param);
+    // change signature to vec of u8
+    let sig = signature.to_bytes();
+
+    // construct a signature BTreeMap, that will be used to create a C
+    let mut inner_signature_map = std::collections::BTreeMap::new();
+    inner_signature_map.insert(0, Signature::Ed25519(contracts_common::SignatureEd25519(sig)));
+  
+    // construct a credential with the signature btree map
+    let mut signature_map = std::collections::BTreeMap::new();
+    signature_map.insert(
+        0,
+        CredentialSignatures {
+            sigs: inner_signature_map,
+        },
+    );
+
+    // get signer
+    let signer = AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe")?;
+    
+    // construct permit param 
+    let param: PermitParam = PermitParam {
+        message : permit_message,
+        signature: AccountSignatures {
+            sigs: signature_map,
+        },
+        signer
+    };
+
 
     // Create a successful transaction.
 
-    let bytes = contracts_common::to_bytes(&input_parameter); // Example
+    let bytes = contracts_common::to_bytes(&param); // Example
 
     let update_payload = transactions::UpdateContractPayload {
         amount: Amount::from_ccd(0),
         address: init_result.contract_address,
-        receive_name: OwnedReceiveName::new_unchecked("gonana_concordium_smart_contract.receive".to_string()),
+        receive_name: OwnedReceiveName::new_unchecked("gonana_concordium_smart_contract.permit".to_string()),
         message: bytes.try_into()?,
     }; // Example
 
