@@ -18,8 +18,9 @@ use contracts_common::AccountAddress;
 use deployer::{DeployResult, Deployer, InitResult};
 use std::{
     io::Cursor,
-    path::{Path, PathBuf}, str::FromStr,
+    path::{Path, PathBuf}, str::FromStr, u64::MAX,
 };
+
 //use concordium_base::ed25519::SecretKey;
 //use concordium_base::web3id::Web3IdSigner;
 //use concordium_contracts_common::CredentialSignatures;
@@ -114,14 +115,18 @@ async fn main() -> Result<(), Error> {
 
     let list_parameter =  ListProductParameter {
         farmer,
-        price : Amount::from_ccd(10),
+        price: Amount::from_ccd(10),
         product: "2000 Strawberrys".into()
     }; // Example
+
+    //Time
+    // let transaction_expiry_seconds = chrono::Utc::now().timestamp() as u64 + 3600 ;
+   
 
     let permit_message = PermitMessage{
         contract_address: ContractAddress::new(7552, 0),
         nonce: 0,
-        timestamp: Timestamp::from_timestamp_millis(600000000),
+        timestamp: Timestamp::from_timestamp_millis(MAX),
         entry_point: OwnedEntrypointName::new_unchecked("internal_list_product".into()),
         payload: concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter),
     };
@@ -138,7 +143,7 @@ async fn main() -> Result<(), Error> {
     // let key = SecretKey::from_bytes(&byte_array)?;
     
     // // change list_parameter to bytes
-     let serialized_list_param = concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter);
+     let serialized_list_param = contracts_common::to_bytes(&list_parameter);
 
     // // sign the list parameter
     // let signature = key.sign(&serialized_list_param);
@@ -162,7 +167,7 @@ async fn main() -> Result<(), Error> {
     // );
 
     // get signer
-    let signer = AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe")?;
+    //let signer = AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA")?;
     
     // construct permit param 
     let param: PermitParam = PermitParam {
@@ -171,7 +176,7 @@ async fn main() -> Result<(), Error> {
         // signature: AccountSignatures {
         //     sigs: signature_map,
         // },
-        signer
+        signer: deployer.key.address
     };
 
 

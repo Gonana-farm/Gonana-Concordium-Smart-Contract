@@ -436,7 +436,7 @@ fn contract_permit(
     let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
     // Check signature.
-    let valid_signature =host.check_account_signature(param.signer, &param.signature, &message_hash)
+    let valid_signature = host.check_account_signature(param.signer, &param.signature, &message_hash)
         .expect("account signature was incorrect");
     ensure!(valid_signature, MarketplaceError::WrongSignature);
 
