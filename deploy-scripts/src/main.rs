@@ -124,7 +124,7 @@ async fn main() -> Result<(), Error> {
    
 
     let permit_message = PermitMessage{
-        contract_address: ContractAddress::new(7552, 0),
+        contract_address: ContractAddress::new(7572, 0),
         nonce: 0,
         timestamp: Timestamp::from_timestamp_millis(MAX),
         entry_point: OwnedEntrypointName::new_unchecked("internal_list_product".into()),
@@ -186,7 +186,7 @@ async fn main() -> Result<(), Error> {
 
     let update_payload = transactions::UpdateContractPayload {
         amount: Amount::from_ccd(0),
-        address: ContractAddress::new(7552, 0),//init_result.contract_address,
+        address: ContractAddress::new(7572, 0),//init_result.contract_address,
         receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
         message: bytes.try_into()?,
     }; // Example
