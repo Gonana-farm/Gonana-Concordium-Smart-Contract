@@ -26,11 +26,6 @@ pub struct ProductListing {
     pub state: ProductState
 }
 
-impl ProductListing {
-    fn new() -> Self {
-        todo!()
-    }
-}
 
 // Struct to represent an order.
 #[derive( Serialize, SchemaType, Eq, PartialEq, PartialOrd, Clone)]
@@ -212,23 +207,20 @@ pub struct State<S = StateApi>  {
 
 }
 
-impl State{
+// impl State{
 
-    fn list_product(&mut self, farmer: AccountAddress, product: String, price: Amount) -> Result<(),MarketplaceError>{
-        let listing = ProductListing {
-            farmer,
-            product: product.clone(),
-            price,
-            state:ProductState::Listed
-        };
-        self.product_listings.insert(product,listing);
-        Ok(())
-    }
+//     fn list_product(&mut self, farmer: AccountAddress, product: String, price: Amount) -> Result<(),MarketplaceError>{
+//         let listing = ProductListing {
+//             farmer,
+//             product: product.clone(),
+//             price,
+//             state:ProductState::Listed
+//         };
+//         self.product_listings.insert(product,listing);
+//         Ok(())
+//     }
 
-}
-
-
-
+// }
 
 
 
