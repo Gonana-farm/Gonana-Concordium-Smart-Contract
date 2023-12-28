@@ -3,6 +3,7 @@
   "rust-analyzer.linkedProjects": [
     "./Cargo.toml",
     "./deploy-scripts/Cargo.toml",
-    "./deploy-scripts/Cargo.toml"
+    "./deploy-scripts/Cargo.toml",
+    "./gona-token/Cargo.toml"
   ]
 }

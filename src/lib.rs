@@ -26,6 +26,11 @@ pub struct ProductListing {
     pub state: ProductState
 }
 
+impl ProductListing {
+    fn new() -> Self {
+        todo!()
+    }
+}
 
 // Struct to represent an order.
 #[derive( Serialize, SchemaType, Eq, PartialEq, PartialOrd, Clone)]
@@ -207,20 +212,20 @@ pub struct State<S = StateApi>  {
 
 }
 
-// impl State{
+impl State{
 
-//     fn list_product(&mut self, farmer: AccountAddress, product: String, price: Amount) -> Result<(),MarketplaceError>{
-//         let listing = ProductListing {
-//             farmer,
-//             product: product.clone(),
-//             price,
-//             state:ProductState::Listed
-//         };
-//         self.product_listings.insert(product,listing);
-//         Ok(())
-//     }
+    fn list_product(&mut self, farmer: AccountAddress, product: String, price: Amount) -> Result<(),MarketplaceError>{
+        let listing = ProductListing {
+            farmer,
+            product: product.clone(),
+            price,
+            state:ProductState::Listed
+        };
+        self.product_listings.insert(product,listing);
+        Ok(())
+    }
 
-// }
+}
 
 
 
@@ -421,6 +426,7 @@ fn contract_permit(
     drop(entry);
 
     let message = param.message;
+    let list_param = message.payload.clone();
 
     // Check the nonce to prevent replay attacks.
     ensure_eq!(message.nonce, nonce, MarketplaceError::NonceAlreadyUsed);
@@ -433,10 +439,10 @@ fn contract_permit(
     );
     // Check signature is not expired.
     ensure!(message.timestamp > ctx.metadata().slot_time(), MarketplaceError::Expired.into());
-    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+    let _message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
     // Check signature.
-    let valid_signature = host.check_account_signature(param.signer, &param.signature, &message_hash)
+    let valid_signature = host.check_account_signature(param.signer, &param.signature, &list_param)
         .expect("account signature was incorrect");
     ensure!(valid_signature, MarketplaceError::WrongSignature);
 
@@ -523,6 +529,9 @@ fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> 
 
     // Ensure that the product is in a valid state for placing an order
     ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);
+    
+    // Ensure that the full amount was paid
+    ensure!(amount >= product.price, MarketplaceError::InvalidPrice);
 
 
     // Create an order
