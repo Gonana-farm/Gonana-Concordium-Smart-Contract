@@ -15,3 +15,5 @@ concordium_base = "3.2.0"
 gonana_concordium_smart_contract = {path = "../"}
 hex = "0.4.3"
 concordium-contracts-common = "8.1.1"
+gona_token = {path = "../gona-token"}
+concordium-cis2 = {version = "5.1", default-features = false}

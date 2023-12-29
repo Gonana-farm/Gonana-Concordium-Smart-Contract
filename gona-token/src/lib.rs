@@ -68,7 +68,12 @@ pub struct ApproveParam {
     amount: TokenAmountU64,
     spender: Address,
     token_id: TokenIdUnit,
+}
 
+impl ApproveParam {
+    pub fn new(amount:TokenAmountU64,spender:Address,token_id: TokenIdUnit) -> Self{
+        Self{amount,spender,token_id}
+    }
 }
 
 #[derive(Serialize, Debug)]
@@ -76,6 +81,12 @@ pub struct SpendParam {
     amount: TokenAmountU64,
     owner: Address,
     token_id: TokenIdUnit,
+}
+
+impl SpendParam {
+    pub fn new(amount:TokenAmountU64,owner:Address,token_id: TokenIdUnit) -> Self{
+        Self{amount,owner,token_id}
+    }
 }
 
 
@@ -1142,4 +1153,10 @@ fn transfer_from( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult
     let _res = state.transfer_from(&params.token_id, &params.owner, &ctx.sender(), state_builder);
     Ok(())
 
+}
+
+// // View function to get ContractId
+#[receive(contract = "gona_token", name = "gona_id", return_value = "ContractTokenId")]
+fn view_orders(_ctx: &ReceiveContext, _host: &Host<State>) -> ReceiveResult<ContractTokenId> {
+    Ok(TOKEN_ID_GONA)
 }

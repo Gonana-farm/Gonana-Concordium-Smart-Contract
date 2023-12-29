@@ -506,6 +506,7 @@ fn cancel_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Ma
     }
 }
 
+// buy a product
 #[receive(contract = "gonana_marketplace", name="place_order", parameter = "PlaceOrderParameter", mutable, payable)]
 fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> Result<(), MarketplaceError> {
     let parameter: PlaceOrderParameter = ctx.parameter_cursor().get()?;
