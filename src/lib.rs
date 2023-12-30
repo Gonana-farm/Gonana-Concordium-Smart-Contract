@@ -5,23 +5,21 @@
 use concordium_std::*;
 use core::fmt::Debug;
 use concordium_std::Amount;
-use rand::prelude::*;
-
 
 
 /// Enum representing the possible states of a product
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq, Clone)]
 pub enum ProductState {
     Listed,
-    Released,
-    Shipped,
+    Escrowed,
+    Confirmed,
     Cancelled,
 }
 
+
 // Struct to represent a product listing.
-#[derive(Serialize, SchemaType,  Clone)]
+#[derive(Serialize, Clone, SchemaType, PartialEq, Eq, Debug)]
 pub struct ProductListing {
-    pub id: u128,  // Unique identifier for the listing
     pub farmer: AccountAddress,
     pub product: String,
     pub price: Amount,
@@ -37,38 +35,27 @@ pub struct Order {
     pub price: Amount,
 }
 
-#[derive(Serialize, SchemaType, Eq, PartialEq, PartialOrd, Clone)]
-pub struct Escrow {
-    pub funds: Amount,
-    pub product: String,
-    pub buyer: AccountAddress,
-}
-
-
-/// Smart contract state
-#[derive( Serialize, SchemaType,  Clone)]
-pub struct State {
-    pub product_listings: Vec<ProductListing>,
-    pub orders: Vec<Order>,
-    pub escrows: Vec<Escrow>,
-}
 
 /// Error types
 #[derive(Debug, PartialEq, Eq, Clone, Reject, Serialize, SchemaType)]
 pub enum MarketplaceError {
     ProductNotFound,
     OrderNotFound,
-    EscrowNotFound,
-    InvalidCaller,
+    OrderAlreadyExists,
     InvalidProductState,
     InsufficientFunds,
     InvalidPrice,
-    RandomGenerationError,
     #[from(ParseError)]
     ParseParams,
     #[from(TransferError)]
     TransferError,
+    NonceAlreadyUsed,
+    WrongContract,
+    Expired,
+    WrongFunctionCall,
+    WrongSignature
 }
+
 
 #[derive(Serialize, SchemaType)]
 pub struct ListProductParameter{
@@ -79,36 +66,401 @@ pub struct ListProductParameter{
 
 #[derive(Serialize, SchemaType)]
 pub struct CancelProductParameter{
-    pub product: String,
+    pub product_name: String,
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/// List of supported entrypoints by the `permit` function (CIS3 standard).
+//const SUPPORTS_PERMIT_ENTRYPOINTS: [EntrypointName; 2] =
+    //[EntrypointName::new_unchecked("updateOperator"), EntrypointName::new_unchecked("list_product")];
+
+/// Tag for the CIS3 Nonce event.
+pub const NONCE_EVENT_TAG: u8 = u8::MAX - 5;
+
+/// Tagged events to be serialized for the event log.
+#[derive(Debug, Serial, Deserial, PartialEq, Eq)]
+#[concordium(repr(u8))]
+pub enum Event {
+    /// The event tracks the nonce used by the signer of the `PermitMessage`
+    /// whenever the `permit` function is invoked.
+    #[concordium(tag = 250)]
+    Nonce(NonceEvent),
+}
+
+/// The NonceEvent is logged when the `permit` function is invoked. The event
+/// tracks the nonce used by the signer of the `PermitMessage`.
+#[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
+pub struct NonceEvent {
+    /// Account that signed the `PermitMessage`.
+    pub account: AccountAddress,
+    /// The nonce that was used in the `PermitMessage`.
+    pub nonce:   u64,
+}
+
+
+// Implementing a custom schemaType to the `Event` combining all CIS2/CIS3
+// events.
+impl schema::SchemaType for Event {
+    fn get_type() -> schema::Type {
+        let mut event_map = collections::BTreeMap::new();
+        event_map.insert(
+            NONCE_EVENT_TAG,
+            (
+                "Nonce".to_string(),
+                schema::Fields::Named(vec![
+                    (String::from("account"), AccountAddress::get_type()),
+                    (String::from("nonce"), u64::get_type()),
+                ]),
+            ),
+        );
+        schema::Type::TaggedEnum(event_map)
+    }
+}
+
+
+/// Part of the parameter type for the contract function `permit`.
+/// Specifies the message that is signed.
+#[derive(SchemaType, Serialize)]
+pub struct PermitMessage {
+    /// The contract_address that the signature is intended for.
+    pub contract_address: ContractAddress,
+    /// A nonce to prevent replay attacks.
+    pub nonce:            u64,
+    /// A timestamp to make signatures expire.
+    pub timestamp:        Timestamp,
+    /// The entry_point that the signature is intended for.
+    pub entry_point:      OwnedEntrypointName,
+    /// The serialized payload that should be forwarded to either the `transfer`
+    /// or the `updateOperator` function.
+    #[concordium(size_length = 2)]
+    pub payload:          Vec<u8>,
+}
+
+/// The parameter type for the contract function `permit`.
+/// Takes a signature, the signer, and the message that was signed.
+#[derive(Serialize, SchemaType)]
+pub struct PermitParam {
+    /// Signature/s. The CIS3 standard supports multi-sig accounts.
+    pub signature: AccountSignatures,
+    /// Account that created the above signature.
+    pub signer:    AccountAddress,
+    /// Message that was signed.
+    pub message:   PermitMessage,
+}
+
+#[derive(Serialize)]
+pub struct PermitParamPartial {
+    /// Signature/s. The CIS3 standard supports multi-sig accounts.
+    signature: AccountSignatures,
+    /// Account that created the above signature.
+    signer:    AccountAddress,
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[derive(Serialize, SchemaType)]
 pub struct PlaceOrderParameter {
-    pub product_id: u128,
+    pub product_name: String,
     pub buyer:AccountAddress,
-    pub price: Amount
+    pub seller: AccountAddress,
 }
+
+/// Smart contract state
+#[derive(Serial, DeserialWithState)]
+#[concordium(state_parameter = "S")]
+pub struct State<S = StateApi>  {
+    pub product_listings: StateMap<String,ProductListing, S>,
+    pub orders: StateMap<String,Order,S>,
+    nonces_registry:  StateMap<AccountAddress, u64, S>,
+
+}
+
+// impl State{
+
+//     fn list_product(&mut self, farmer: AccountAddress, product: String, price: Amount) -> Result<(),MarketplaceError>{
+//         let listing = ProductListing {
+//             farmer,
+//             product: product.clone(),
+//             price,
+//             state:ProductState::Listed
+//         };
+//         self.product_listings.insert(product,listing);
+//         Ok(())
+//     }
+
+// }
+
+
+
 
 // Init function to initialize the marketplace state
 #[init(contract = "gonana_marketplace")]
-fn init(_ctx: &InitContext, _state_builder: &mut StateBuilder) -> InitResult<State>{
+fn init(_ctx: &InitContext, state_builder: &mut StateBuilder) -> InitResult<State>{
     Ok(State { 
-         product_listings: Vec::new(),
-        orders: Vec::new(),
-        escrows: Vec::new(),
+            product_listings: state_builder.new_map(),
+            orders: state_builder.new_map(),
+            nonces_registry:  state_builder.new_map(),
      })
 }
+
+// internal list function that will be executed by the permit message
+fn internal_list_product(host: &mut Host<State>,params:ListProductParameter) -> Result<(),MarketplaceError>{
+    let (state, _builder) = host.state_and_builder();
+    
+    let listing = ProductListing {
+        farmer: params.farmer,
+        product: params.product.clone(),
+        price: params.price,
+        state:ProductState::Listed
+    };
+    state.product_listings.insert(params.product,listing);
+    Ok(())
+}
+
+/// Response type for the function `publicKeyOf`.
+#[derive(Debug, Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct PublicKeyOfQueryResponse(
+    #[concordium(size_length = 2)] pub Vec<Option<AccountPublicKeys>>,
+);
+
+impl From<Vec<Option<AccountPublicKeys>>> for PublicKeyOfQueryResponse {
+    fn from(results: concordium_std::Vec<Option<AccountPublicKeys>>) -> Self {
+        PublicKeyOfQueryResponse(results)
+    }
+}
+
+/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
+/// for the public key/nonce of a given account.
+#[derive(Debug, Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct VecOfAccountAddresses {
+    /// List of queries.
+    #[concordium(size_length = 2)]
+    pub queries: Vec<AccountAddress>,
+}
+
+/// Get the public keys of accounts. `None` is returned if the account does not
+/// exist on chain.
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "gonana_marketplace",
+    name = "publicKeyOf",
+    parameter = "VecOfAccountAddresses",
+    return_value = "PublicKeyOfQueryResponse",
+    error = "ContractError"
+)]
+fn contract_public_key_of(
+    ctx: &ReceiveContext,
+    host: &Host<State>,
+) -> Result<PublicKeyOfQueryResponse,MarketplaceError> {
+    // Parse the parameter.
+    let params: VecOfAccountAddresses = ctx.parameter_cursor().get()?;
+    // Build the response.
+    let mut response: Vec<Option<AccountPublicKeys>> = Vec::with_capacity(params.queries.len());
+    for account in params.queries {
+        // Query the public_key.
+        let public_keys = host.account_public_keys(account).ok();
+
+        response.push(public_keys);
+    }
+    let result = PublicKeyOfQueryResponse::from(response);
+    Ok(result)
+}
+
+/// Response type for the function `nonceOf`.
+#[derive(Debug, Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct NonceOfQueryResponse(#[concordium(size_length = 2)] pub Vec<u64>);
+
+impl From<Vec<u64>> for NonceOfQueryResponse {
+    fn from(results: concordium_std::Vec<u64>) -> Self { NonceOfQueryResponse(results) }
+}
+
+/// Get the nonces of accounts.
+///
+/// It rejects if:
+/// - It fails to parse the parameter.
+#[receive(
+    contract = "gonana_marketplace",
+    name = "nonceOf",
+    parameter = "VecOfAccountAddresses",
+    return_value = "NonceOfQueryResponse",
+    error = "MaketplaceError"
+)]
+fn contract_nonce_of(
+    ctx: &ReceiveContext,
+    host: &Host<State>,
+) -> Result<NonceOfQueryResponse,MarketplaceError> {
+    // Parse the parameter.
+    let params: VecOfAccountAddresses = ctx.parameter_cursor().get()?;
+    // Build the response.
+    let mut response: Vec<u64> = Vec::with_capacity(params.queries.len());
+    for account in params.queries {
+        // Query the next nonce.
+        let nonce = host.state().nonces_registry.get(&account).map(|nonce| *nonce).unwrap_or(0);
+
+        response.push(nonce);
+    }
+    Ok(NonceOfQueryResponse::from(response))
+}
+
+
+
+/// Helper function to calculate the `message_hash`.
+#[receive(
+    contract = "gonana_marketplace",
+    name = "viewMessageHash",
+    parameter = "PermitParam",
+    return_value = "[u8;32]",
+    crypto_primitives,
+    mutable
+)]
+fn contract_view_message_hash(
+    ctx: &ReceiveContext,
+    _host: &mut Host<State>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<[u8; 32],MarketplaceError> {
+    // Parse the parameter.
+    let mut cursor = ctx.parameter_cursor();
+    // The input parameter is `PermitParam` but we only read the initial part of it
+    // with `PermitParamPartial`. I.e. we read the `signature` and the
+    // `signer`, but not the `message` here.
+    let param: PermitParamPartial = cursor.get()?;
+
+    // The input parameter is `PermitParam` but we have only read the initial part
+    // of it with `PermitParamPartial` so far. We read in the `message` now.
+    // `(cursor.size() - cursor.cursor_position()` is the length of the message in
+    // bytes.
+    let mut message_bytes = vec![0; (cursor.size() - cursor.cursor_position()) as usize];
+
+    cursor.read_exact(&mut message_bytes)?;
+
+    // The message signed in the Concordium browser wallet is prepended with the
+    // `account` address and 8 zero bytes. Accounts in the Concordium browser wallet
+    // can either sign a regular transaction (in that case the prepend is
+    // `account` address and the nonce of the account which is by design >= 1)
+    // or sign a message (in that case the prepend is `account` address and 8 zero
+    // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
+    // sign a transaction. The account nonce is of type u64 (8 bytes).
+    let mut msg_prepend = [0; 32 + 8];
+    // Prepend the `account` address of the signer.
+    msg_prepend[0..32].copy_from_slice(param.signer.as_ref());
+    // Prepend 8 zero bytes.
+    msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
+    // Calculate the message hash.
+    let message_hash =
+        crypto_primitives.hash_sha2_256(&[&msg_prepend[0..40], &message_bytes].concat()).0;
+
+    Ok(message_hash)
+}
+
+
+#[receive(
+    contract = "gonana_marketplace",
+    name = "permit",
+    parameter = "PermitParam",
+    crypto_primitives,
+    mutable,
+    enable_logger
+)]
+fn contract_permit(
+    ctx: &ReceiveContext,
+    host: &mut Host<State>,
+    logger: &mut impl HasLogger,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<(),MarketplaceError> {
+
+    // Parse the parameter.
+    let param: PermitParam = ctx.parameter_cursor().get()?;
+
+    // Update the nonce.
+    let mut entry = host.state_mut().nonces_registry.entry(param.signer).or_insert_with(|| 0);
+
+    // Get the current nonce.
+    let nonce = *entry;
+    // Bump nonce.
+    *entry += 1;
+    drop(entry);
+
+    let message = param.message;
+    let list_param = message.payload.clone();
+
+    // Check the nonce to prevent replay attacks.
+    ensure_eq!(message.nonce, nonce, MarketplaceError::NonceAlreadyUsed);
+
+     // Check that the signature was intended for this contract.
+     ensure_eq!(
+        message.contract_address,
+        ctx.self_address(),
+        MarketplaceError::WrongContract.into()
+    );
+    // Check signature is not expired.
+    ensure!(message.timestamp > ctx.metadata().slot_time(), MarketplaceError::Expired.into());
+    let _message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+
+    // Check signature.
+    let valid_signature = host.check_account_signature(param.signer, &param.signature, &list_param)
+        .expect("account signature was incorrect");
+    ensure!(valid_signature, MarketplaceError::WrongSignature);
+
+    if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("internal_list_product") {
+        let params: ListProductParameter = from_bytes(&message.payload).expect("could not unwrap payload");
+        let response = internal_list_product(host, params)?;
+        // Log the nonce event.
+        logger.log(&Event::Nonce(NonceEvent {
+            account: param.signer,
+            nonce,
+        })).expect("events could not be logged");
+        Ok(response)
+    }else{
+        Err(MarketplaceError::WrongFunctionCall)
+    }
+
+}
+
 
 
 /// Function to list a product in the marketplace
 #[receive(contract = "gonana_marketplace", name = "list_product", parameter = "ListProductParameter", mutable )]
 fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
-    let parameter: ListProductParameter= ctx.parameter_cursor().get()?;
+    let parameter: ListProductParameter = ctx.parameter_cursor().get()?;
    
- // Generate a unique ID for the product listing using the rand crate
- let id: u128 = random();
-
-    //check if the price is 0
+    // Check if the price is 0
     if parameter.price <= Amount::zero() {
         return Err(MarketplaceError::InvalidPrice);
     }
@@ -119,175 +471,152 @@ fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mark
     }
 
     let listing = ProductListing {
-        id,
         farmer: parameter.farmer,
-        product: parameter.product,
+        product: parameter.product.clone(),
         price: parameter.price,
-        state: ProductState::Listed
+        state: ProductState::Listed,
     };
-        host.state_mut().product_listings.push(listing);
-        Ok(()) 
+    
+    host.state_mut().product_listings.insert(parameter.product.clone(), listing);
+
+    Ok(()) 
 }
+
 
 
 /// Function to cancel or unlist a product
 #[receive(contract = "gonana_marketplace", name = "cancel_product", parameter = "CancelProductParameter", mutable )]
 fn cancel_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
-    let parameter: CancelProductParameter= ctx.parameter_cursor().get()?;
-    let product = parameter.product;
+    let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
+    let product_name = parameter.product_name.clone();
 
-
-    let mut listing = host.state_mut().product_listings.iter_mut().find(|l| l.product == product)
-    .ok_or(MarketplaceError::ProductNotFound)?;
-
-     // Check if the product is in a cancellable state
-     match listing.state {
-        ProductState::Listed | ProductState::Released => {
-            listing.state = ProductState::Cancelled;
-            Ok(())
+    // Check if the product is found
+    if let Some(mut listing) = host.state_mut().product_listings.get_mut(&product_name) {
+        // Check if the product is in a cancellable state
+        match listing.state {
+            ProductState::Listed | ProductState::Escrowed => {
+                listing.state = ProductState::Cancelled;
+                Ok(())
+            }
+            _ => Err(MarketplaceError::InvalidProductState),
         }
-        _ => Err(MarketplaceError::InvalidProductState),
+    } else {
+        // Product not found
+        Err(MarketplaceError::ProductNotFound)
     }
 }
 
-
-/// Function to place an order and create an escrow
+// buy a product
 #[receive(contract = "gonana_marketplace", name="place_order", parameter = "PlaceOrderParameter", mutable, payable)]
-fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, _amount: Amount) -> Result<(), MarketplaceError>{
-    let parameter : PlaceOrderParameter = ctx.parameter_cursor().get()?;
+fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> Result<(), MarketplaceError> {
+    let parameter: PlaceOrderParameter = ctx.parameter_cursor().get()?;
 
-     // Check if the product ID is valid
-    // if host.state_mut().product_listings.iter().find(|listing| listing.id == parameter.product_id)
-    // .is_none() {
-    //     return Err(MarketplaceError::ProductNotFound);
-    // }
+    let state_mut = host.state_mut();
 
-    // Find the product by ID
-    if let Some(product) = host.state_mut().product_listings.clone().iter_mut().find(|p| p.id == parameter.product_id) {
-        // Check if the product is in a valid state for placing an order
-        if product.state != ProductState::Listed {
-            return Err(MarketplaceError::InvalidProductState);
-        }
-        
-         // Create an order
-         let order = Order {
-            buyer: parameter.buyer,
-            product: product.product.clone(),
-            price: parameter.price,
-        };
+    // Find the product by name
+    let mut product = 
+        state_mut
+        .product_listings
+        .get_mut(&parameter.product_name)
+        .ok_or(MarketplaceError::ProductNotFound)?;
 
-         // Deduct the order amount from the buyer's account
-         host.invoke_transfer(&product.farmer, parameter.price)?;
-
-          // Add the order to the orders list
-        host.state_mut().orders.push(order);
-
-          // Update the product state to Released
-          product.state = ProductState::Released;
-
-           // Create an escrow
-        let escrow = Escrow {
-            funds: parameter.price,
-            product: product.product.clone(),
-            buyer: parameter.buyer,
-        };
-
-        // Add the escrow to the escrows list
-        host.state_mut().escrows.push(escrow);
-
-        Ok(())
-    } else {
-        // Product not found
-        Err(MarketplaceError::ProductNotFound)
-    }
-
- 
-}
-
-
-
-/// Function to release a product in the marketplace
-#[receive(contract = "gonana_marketplace", name = "release_product", parameter = "CancelProductParameter", mutable)]
-fn release_product(ctx:&ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>  {
-    let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
-
-    // Check if the product name is not empty
-    if parameter.product.is_empty() {
-        return Err(MarketplaceError::ParseParams);
-    }
-
-     // Find the product by name
-     if let Some(product) = host.state_mut().product_listings.iter_mut().find(|p| p.product == parameter.product) {
-        // Check if the product is in a valid state for releasing
-        if product.state != ProductState::Released {
-            return Err(MarketplaceError::InvalidProductState);
-        }
-
-        // Update the product state to Shipped
-        product.state = ProductState::Shipped;
-
-        Ok(())
-    } else {
-        // Product not found
-        Err(MarketplaceError::ProductNotFound)
-    }
+    // Ensure that the product is in a valid state for placing an order
+    ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);
     
+    // Ensure that the full amount was paid
+    ensure!(amount >= product.price, MarketplaceError::InvalidPrice);
+
+
+    // Create an order
+    let order = Order {
+        buyer:   parameter.buyer,
+        product: product.product.clone(),
+        price:   amount,
+    };
+
+    // Insert the order and update the product state to Escrowed 
+    ensure!(state_mut.orders.insert(parameter.product_name.clone(), order).is_none(), MarketplaceError::OrderAlreadyExists);
+
+    // If the insert is successful, update the product state
+     // Update the product state to Escrowed
+     product.state = ProductState::Escrowed;
+    Ok(())
+
 }
 
 
 
-/// Function to confirm an escrow in the marketplace
-#[receive( contract = "gonana_marketplace", name = "confirm_escrow", parameter = "CancelProductParameter", mutable )]
-fn confirm_escrow(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
-    let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
+//function to confirm an escrow 
+#[receive(contract = "gonana_marketplace", name = "confirm_order", parameter = "PlaceOrderParameter", mutable)]
+fn confirm_order(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError> {
+     let param:PlaceOrderParameter = ctx.parameter_cursor().get()?;
+     let product_name = param.product_name.clone();
 
-    // Check if the product name is not empty
-    if parameter.product.is_empty() {
-        return Err(MarketplaceError::ParseParams);
-    }
+     let state_mut = host.state_mut();
 
       // Find the product by name
-    if let Some(product) = host.state_mut().product_listings.clone().iter_mut().find(|p| p.product == parameter.product) {
-        // Check if the product is in a valid state for confirming the escrow
-        if product.state != ProductState::Cancelled {
-            return Err(MarketplaceError::InvalidProductState);
-        }
+    let mut product = 
+    state_mut
+        .product_listings
+        .get_mut(&product_name)
+        .ok_or(MarketplaceError::ProductNotFound)?;
 
-        // Find the corresponding escrow
-        if let Some(escrow_index) = host.state_mut().escrows.iter().position(|e| e.product == parameter.product) {
-            let escrow = host.state_mut().escrows.remove(escrow_index);
+    // Ensure that the product is in a valid state for confirming the escrow
+    ensure!(product.state == ProductState::Escrowed, MarketplaceError::InvalidProductState);
+    
+    product.state = ProductState::Confirmed;
+    drop(product);
 
-            // Transfer the funds from the escrow to the farmer's account
-            host.invoke_transfer(&product.farmer, escrow.funds)?;
+     // Get the order by product_name
+     if let Some(order) = host.state_mut().orders.remove_and_get(&param.product_name) {
+        // Transfer funds
+        host.invoke_transfer(&param.seller, order.price)?;
 
-            Ok(())
-        } else {
-            // Escrow not found
-            Err(MarketplaceError::EscrowNotFound)
-        }
+        // It's important to call `Deletable::delete` on the value
+        order.delete();
+
+        Ok(())
     } else {
-        // Product not found
-        Err(MarketplaceError::ProductNotFound)
+        // Escrow not found
+        Err(MarketplaceError::OrderNotFound)
     }
-   
 }
 
 
 
-// View function to get all product listings
+
+// // View function to get all product listings
 #[receive(contract = "gonana_marketplace", name = "view_product_listings", return_value = "Vec<ProductListing>")]
 fn view_product_listings(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<ProductListing>> {
-    Ok(host.state().product_listings.clone())
+    let state = host.state();
+    let product_listings: Vec<ProductListing> = state.product_listings.iter().map(|(_, product)| product.clone()).collect();
+    Ok(product_listings)
 }
 
-// View function to get all orders
+// // View function to get all orders
 #[receive(contract = "gonana_marketplace", name = "view_orders", return_value = "Vec<Order>")]
 fn view_orders(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<Order>> {
-    Ok(host.state().orders.clone())
+    let state = host.state();
+    let orders: Vec<Order> = state.orders.iter().map(|(_, order)| order.clone()).collect();
+    Ok(orders)
 }
 
-// View function to get all escrows
-#[receive(contract = "gonana_marketplace", name = "view_escrows", return_value = "Vec<Escrow>")]
-fn view_escrows(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<Escrow>> {
-    Ok(host.state().escrows.clone())
-}
+
+//list_product
+//concordium-client contract update  gonana_marketplace_instance --entrypoint list_product --parameter-json ./list_product.json --schema ./schema.bin --sender TimConcordiumWallet  --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//cancel_product
+//concordium-client contract update  gonana_marketplace_instance --entrypoint cancel_product --parameter-json ./cancel_product.json --schema ./schema.bin --sender TimConcordiumWallet  --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//view product_listings
+//concordium-client contract invoke   gonana_marketplace_instance --entrypoint view_product_listings --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//view orders
+// concordium-client contract invoke   gonana_marketplace_instance --entrypoint view_orders --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+//place_orders
+//concordium-client contract update  gonana_marketplace_instance --entrypoint place_order --parameter-json ./place_order.json --amount 1000 --schema ./schema.bin --sender TimConcordiumWallet  --energy 3000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+
+
+//confirm_orders
+//concordium-client contract update  gonana_marketplace_instance --entrypoint confirm_order --parameter-json ./place_order.json  --schema ./schema.bin --sender TimConcordiumWallet  --energy 3000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
