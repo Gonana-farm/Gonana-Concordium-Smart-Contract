@@ -63,7 +63,7 @@ struct State<S: HasStateApi = StateApi> {
     /// Approve another address to spend tokens on your behalf
     approvals: StateMap<Address, StateMap<Address, TokenAmountU64, S>, S>
 }
-#[derive(Serialize, Debug)]
+#[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
 pub struct ApproveParam {
     amount: TokenAmountU64,
     spender: Address,
@@ -76,7 +76,7 @@ impl ApproveParam {
     }
 }
 
-#[derive(Serialize, Debug)]
+#[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
 pub struct SpendParam {
     amount: TokenAmountU64,
     owner: Address,
@@ -1159,4 +1159,9 @@ fn transfer_from( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult
 #[receive(contract = "gona_token", name = "gona_id", return_value = "ContractTokenId")]
 fn view_orders(_ctx: &ReceiveContext, _host: &Host<State>) -> ReceiveResult<ContractTokenId> {
     Ok(TOKEN_ID_GONA)
+}
+
+#[receive(contract = "gona_token", name = "check_approval", return_value = "ContractTokenId")]
+fn check_approval(ctx: &ReceiveContext, host: &Host<State>)->ReceiveResult<bool>{
+    Ok(host.state().approvals.get(&ctx.sender()).is_some())
 }
