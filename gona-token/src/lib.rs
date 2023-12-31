@@ -381,6 +381,7 @@ impl State {
 
     /// Approves an address to spend tokens belonging to an owner
     /// Results in an error if the token id does not exist in the state or if
+    /// Causes a run time error if the owner does not have tokens on the contract
     fn approve(
         &mut self,
         //token_id: &ContractTokenId,
@@ -393,8 +394,8 @@ impl State {
         if amount == 0u64.into() {
             return Ok(());
         }
-        let owner_acc = self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?;
-        ensure!(owner_acc.balance >= amount, ContractError::InsufficientFunds);
+        let owner_acc = self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?; //this does not work
+        ensure!(owner_acc.balance >= amount, ContractError::InsufficientFunds); // this does not work yet
         if self.approvals.get(owner).is_none() {
             let mut param = state_builder.new_map();
             param.insert(spender.to_owned(), amount);
@@ -419,6 +420,9 @@ impl State {
     /// A function that transfer a token for an already approved address.
     /// it consumes the total amount of approved coins.
     // todo() !! allow owners to transfer part of the approved coin.
+    // take care of owner non approval error
+        // - the contract does not take care of calling transfer_from on owner parameter that does not give approvals to an address
+        // - WHY!!!!!!!!!
     #[allow(unused_variables)]
     fn transfer_from(
         &mut self,
@@ -429,7 +433,7 @@ impl State {
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
         //ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
-        ensure!(self.approvals.get(owner).unwrap().get(spender).is_some(),ContractError::Custom(CustomContractError::InvokeTransferError));
+        ensure!(self.approvals.get(owner).unwrap().get(spender).is_some(),ContractError::Custom(CustomContractError::InvokeTransferError)); // - THIS DOES NOT WORK
         let amount = self.approvals.get(owner).unwrap().get(spender).unwrap().clone();        
         let mut param = state_builder.new_map();
         param.insert(spender.to_owned(), TokenAmountU64(0));

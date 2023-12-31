@@ -145,16 +145,20 @@ async fn main() -> Result<(), Error> {
 
     //Gona Token==========================================================
 
-    use gona_token::{WrapParams,ApproveParam};
+    use gona_token::{WrapParams,ApproveParam,SpendParam};
     use concordium_cis2::{AdditionalData,Receiver,TokenAmountU64};
     let wrap_param = WrapParams{
         data: AdditionalData::empty(),
         to: Receiver::Account(AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap())
     };
      
-    let amount=TokenAmountU64(1);
+    let amount=TokenAmountU64(10);
+    
     let spender = contracts_common::Address::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA".into()).unwrap());
-    let params = ApproveParam::new(amount, spender);
+    let approve_param = ApproveParam::new(amount, spender);
+    
+    let owner = contracts_common::Address::Account(AccountAddress::from_str("3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr".into()).unwrap());
+    let spend_param = SpendParam::new(amount, owner);
      
     
 
@@ -211,7 +215,7 @@ async fn main() -> Result<(), Error> {
     // Create a successful transaction.
 
     //let bytes = contracts_common::to_bytes(&param); // Example
-    let bytes = contracts_common::to_bytes(&params);
+    let bytes = contracts_common::to_bytes(&spend_param);
 
 
     let update_payload = transactions::UpdateContractPayload {
@@ -219,7 +223,7 @@ async fn main() -> Result<(), Error> {
         //address: init_result.contract_address, 
         address: ContractAddress::new(7625, 0),  
         //receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
-        receive_name: OwnedReceiveName::new_unchecked("gona_token.approve".to_string()),
+        receive_name: OwnedReceiveName::new_unchecked("gona_token.transfer_from".to_string()),
         message: bytes.try_into()?,
     }; // Example
 
