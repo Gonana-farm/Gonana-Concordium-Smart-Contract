@@ -67,12 +67,16 @@ struct State<S: HasStateApi = StateApi> {
 pub struct ApproveParam {
     amount: TokenAmountU64,
     spender: Address,
-    token_id: TokenIdUnit,
+    //token_id: TokenIdUnit,
 }
 
 impl ApproveParam {
-    pub fn new(amount:TokenAmountU64,spender:Address,token_id: TokenIdUnit) -> Self{
-        Self{amount,spender,token_id}
+    pub fn new(
+        amount:TokenAmountU64,
+        spender:Address,
+        //token_id: TokenIdUnit
+    ) -> Self{
+        Self{amount,spender}
     }
 }
 
@@ -80,12 +84,16 @@ impl ApproveParam {
 pub struct SpendParam {
     amount: TokenAmountU64,
     owner: Address,
-    token_id: TokenIdUnit,
+    //token_id: TokenIdUnit,
 }
 
 impl SpendParam {
-    pub fn new(amount:TokenAmountU64,owner:Address,token_id: TokenIdUnit) -> Self{
-        Self{amount,owner,token_id}
+    pub fn new(
+        amount:TokenAmountU64,
+        owner:Address,
+        //token_id: TokenIdUnit
+    ) -> Self{
+        Self{amount,owner}
     }
 }
 
@@ -375,13 +383,13 @@ impl State {
     /// Results in an error if the token id does not exist in the state or if
     fn approve(
         &mut self,
-        token_id: &ContractTokenId,
+        //token_id: &ContractTokenId,
         amount: TokenAmountU64,
         owner: &Address,
         spender: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
-        ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
+        //ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
         if amount == 0u64.into() {
             return Ok(());
         }
@@ -414,13 +422,13 @@ impl State {
     #[allow(unused_variables)]
     fn transfer_from(
         &mut self,
-        token_id: &ContractTokenId,
+        //token_id: &ContractTokenId,
         //amount: TokenAmountU64,
         owner: &Address,
         spender: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
-        ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
+        //ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
         ensure!(self.approvals.get(owner).unwrap().get(spender).is_some(),ContractError::Custom(CustomContractError::InvokeTransferError));
         let amount = self.approvals.get(owner).unwrap().get(spender).unwrap().clone();        
         let mut param = state_builder.new_map();
@@ -1133,7 +1141,7 @@ fn approve( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> {
     ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
     let (state, state_builder) = host.state_and_builder();
     let params: ApproveParam = ctx.parameter_cursor().get()?;
-    let res = state.approve(&params.token_id, params.amount, &ctx.sender(), &params.spender, state_builder)
+    let res = state.approve(params.amount, &ctx.sender(), &params.spender, state_builder)
         .expect("something went wrong with the approve function");
     Ok(res)
 
@@ -1150,7 +1158,12 @@ fn transfer_from( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult
     ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
     let (state, state_builder) = host.state_and_builder();
     let params: SpendParam = ctx.parameter_cursor().get()?;
-    let _res = state.transfer_from(&params.token_id, &params.owner, &ctx.sender(), state_builder);
+    let _res = state.transfer_from(
+        //&params.token_id, 
+        &params.owner, 
+        &ctx.sender(), 
+        state_builder
+    );
     Ok(())
 
 }
