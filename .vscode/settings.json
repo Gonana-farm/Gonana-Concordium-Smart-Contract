@@ -6,5 +6,6 @@
     "./deploy-scripts/Cargo.toml",
     "./gona-token/Cargo.toml",
     "./Cargo.toml"
-  ]
+  ],
+  "rust-analyzer.showUnlinkedFileNotification": false
 }

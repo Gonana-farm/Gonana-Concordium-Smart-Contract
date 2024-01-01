@@ -26,3 +26,10 @@ crate-type=["cdylib", "rlib"]
 [profile.release]
 opt-level = "s"
 codegen-units = 1
+
+[workspace]
+members = [
+    "server",
+    "deploy-scripts",
+    "gona-token"
+]
