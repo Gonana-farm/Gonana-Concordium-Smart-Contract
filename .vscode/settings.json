@@ -2,7 +2,7 @@
   "editor.inlineSuggest.showToolbar": "onHover",
   "rust-analyzer.linkedProjects": [
     "./Cargo.toml",
-    "./deploy-scripts/Cargo.toml",
+    "./server/Cargo.toml",
     "./deploy-scripts/Cargo.toml",
     "./gona-token/Cargo.toml",
     "./Cargo.toml"
