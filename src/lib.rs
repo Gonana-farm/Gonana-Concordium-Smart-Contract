@@ -17,24 +17,42 @@ pub enum ProductState {
 }
 
 
-// Struct to represent a product listing.
+/// The product_id generated off-chain, that signifies the product on chain.
 #[derive(Serialize, Clone, SchemaType, PartialEq, Eq, Debug)]
 pub struct ProductListing {
-    pub farmer: AccountAddress,
-    pub product: String,
-    pub price: Amount,
-    pub state: ProductState
+    product_id: String, 
+    /// Amount of the product.
+    amount: Amount,
+    /// Wallet address of the creator, could be None.
+    wallet: Option<AccountAddress>,
+    /// Hash of the product parameters to prove intergrity. 
+    hash: Option<String>,
+    /// Farmer_id generated offchain that shows the id of a user.
+    merchant_id: String,
+    /// The State of Product
+    state: ProductState
 }
 
 
 // Struct to represent an order.
 #[derive( Serialize, SchemaType, Eq, PartialEq, PartialOrd, Clone)]
 pub struct Order {
-    pub buyer: AccountAddress,
-    pub product: String,
-    pub price: Amount,
+    pub product_id: String,
+    pub amount: Amount,
+    pub buyer_address: Option<AccountAddress>,
+    pub buyer_id: String
 }
 
+
+
+#[derive(Serialize, SchemaType)]
+pub struct PlaceOrderParameter {
+    pub product_id: String,
+    pub buyer_address:Option<AccountAddress>,
+    pub buyer_id: String,
+    pub amount: Amount,
+
+}
 
 /// Error types
 #[derive(Debug, PartialEq, Eq, Clone, Reject, Serialize, SchemaType)]
@@ -56,29 +74,52 @@ pub enum MarketplaceError {
     WrongSignature
 }
 
-
+/// The parameter used to list product on the blockchain.
 #[derive(Serialize, SchemaType)]
 pub struct ListProductParameter{
-    pub farmer: AccountAddress,
-    pub product: String,
-    pub price: Amount,
+    product_id: String, 
+    /// Amount of the product.
+    amount: Amount,
+    /// Wallet address of the creator, could be None.
+    wallet: Option<AccountAddress>,
+    /// Hash of the product parameters to prove intergrity. 
+    hash: Option<String>,
+    /// Farmer_id generated offchain that shows the id of a user.
+    merchant_id: String
 }
+
+impl ListProductParameter {
+    pub fn new(
+        product_id:String,
+        amount:Amount,
+        wallet:Option<AccountAddress>,
+        merchant_id:String
+    ) -> Self {
+        Self{product_id,amount,wallet,hash:None,merchant_id}
+    }
+    // just a stupid implementation, in reality all the information will be hashed and sent to the blockchain
+    pub fn hash(&self,crypto_primitives: &impl HasCryptoPrimitives) -> Self {
+        let payload = self;
+        let bytes = to_bytes(payload);
+        let hash = crypto_primitives.hash_sha2_256(&bytes).to_string();
+        Self {
+            product_id: self.product_id.clone(),
+            amount: self.amount,
+            wallet: self.wallet,
+            hash: Some(hash),
+            merchant_id: self.merchant_id.clone(),
+        }
+
+    }
+}
+
+
 
 #[derive(Serialize, SchemaType)]
 pub struct CancelProductParameter{
-    pub product_name: String,
+    pub product_id: String,
+    pub merchant_id: String
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -185,18 +226,6 @@ pub struct PermitParamPartial {
 
 
 
-
-
-
-
-
-#[derive(Serialize, SchemaType)]
-pub struct PlaceOrderParameter {
-    pub product_name: String,
-    pub buyer:AccountAddress,
-    pub seller: AccountAddress,
-}
-
 /// Smart contract state
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
@@ -240,12 +269,14 @@ fn internal_list_product(host: &mut Host<State>,params:ListProductParameter) -> 
     let (state, _builder) = host.state_and_builder();
     
     let listing = ProductListing {
-        farmer: params.farmer,
-        product: params.product.clone(),
-        price: params.price,
+        merchant_id: params.merchant_id,
+        product_id: params.product_id.clone(),
+        amount: params.amount,
+        wallet: params.wallet,
+        hash: params.hash,
         state:ProductState::Listed
     };
-    state.product_listings.insert(params.product,listing);
+    state.product_listings.insert(params.product_id,listing);
     Ok(())
 }
 
@@ -447,7 +478,35 @@ fn contract_permit(
             nonce,
         })).expect("events could not be logged");
         Ok(response)
-    }else{
+
+    }else if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("place_order") {
+        let _params: PlaceOrderParameter = from_bytes(&message.payload).expect("could not unwrap payload");
+        
+        Ok(())
+        // CANCEL PLACED ORDERS!!!!!
+    }else if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("cancel_order") {
+        let params: CancelProductParameter = from_bytes(&message.payload).expect("could not unwrap payload");
+        let product_name = params.product_id.clone();
+
+    // Check if the product is found
+    if let Some(mut listing) = host.state_mut().product_listings.get_mut(&product_name) {
+        // Check if the product is in a cancellable state
+        ensure!(params.merchant_id == listing.merchant_id, MarketplaceError::WrongSignature);
+
+        match listing.state {
+            ProductState::Listed | ProductState::Escrowed => {
+                listing.state = ProductState::Cancelled;
+                Ok(())
+            }
+            _ => Err(MarketplaceError::InvalidProductState),
+            }
+        } else {
+            // Product not found
+            Err(MarketplaceError::ProductNotFound)
+        }
+
+    }
+    else{
         Err(MarketplaceError::WrongFunctionCall)
     }
 
@@ -461,24 +520,25 @@ fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mark
     let parameter: ListProductParameter = ctx.parameter_cursor().get()?;
    
     // Check if the price is 0
-    if parameter.price <= Amount::zero() {
+    if parameter.amount <= Amount::zero() {
         return Err(MarketplaceError::InvalidPrice);
     }
 
     // Check if the product name is empty
-    if parameter.product.is_empty() {
+    if parameter.product_id.is_empty() {
         return Err(MarketplaceError::ParseParams);
     }
 
     let listing = ProductListing {
-        farmer: parameter.farmer,
-        product: parameter.product.clone(),
-        price: parameter.price,
-        state: ProductState::Listed,
-    };
-    
-    host.state_mut().product_listings.insert(parameter.product.clone(), listing);
-
+            merchant_id: parameter.merchant_id,
+            product_id: parameter.product_id.clone(),
+            amount: parameter.amount,
+            wallet: parameter.wallet,
+            hash: parameter.hash,
+            state:ProductState::Listed
+        };
+        
+    host.state_mut().product_listings.insert(parameter.product_id.clone(), listing);
     Ok(()) 
 }
 
@@ -488,10 +548,13 @@ fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mark
 #[receive(contract = "gonana_marketplace", name = "cancel_product", parameter = "CancelProductParameter", mutable )]
 fn cancel_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
     let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
-    let product_name = parameter.product_name.clone();
+    let product_name = parameter.product_id.clone();
+
 
     // Check if the product is found
     if let Some(mut listing) = host.state_mut().product_listings.get_mut(&product_name) {
+        ensure!(parameter.merchant_id == listing.merchant_id, MarketplaceError::WrongSignature);
+
         // Check if the product is in a cancellable state
         match listing.state {
             ProductState::Listed | ProductState::Escrowed => {
@@ -517,25 +580,26 @@ fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> 
     let mut product = 
         state_mut
         .product_listings
-        .get_mut(&parameter.product_name)
+        .get_mut(&parameter.product_id)
         .ok_or(MarketplaceError::ProductNotFound)?;
 
     // Ensure that the product is in a valid state for placing an order
     ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);
     
     // Ensure that the full amount was paid
-    ensure!(amount >= product.price, MarketplaceError::InvalidPrice);
+    ensure!(amount >= product.amount, MarketplaceError::InvalidPrice);
 
 
     // Create an order
     let order = Order {
-        buyer:   parameter.buyer,
-        product: product.product.clone(),
-        price:   amount,
+        buyer_address:   parameter.buyer_address,
+        product_id: product.product_id.clone(),
+        amount,
+        buyer_id: parameter.buyer_id
     };
 
     // Insert the order and update the product state to Escrowed 
-    ensure!(state_mut.orders.insert(parameter.product_name.clone(), order).is_none(), MarketplaceError::OrderAlreadyExists);
+    ensure!(state_mut.orders.insert(parameter.product_id.clone(), order).is_none(), MarketplaceError::OrderAlreadyExists);
 
     // If the insert is successful, update the product state
      // Update the product state to Escrowed
@@ -550,7 +614,7 @@ fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> 
 #[receive(contract = "gonana_marketplace", name = "confirm_order", parameter = "PlaceOrderParameter", mutable)]
 fn confirm_order(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError> {
      let param:PlaceOrderParameter = ctx.parameter_cursor().get()?;
-     let product_name = param.product_name.clone();
+     let product_id = param.product_id.clone();
 
      let state_mut = host.state_mut();
 
@@ -558,23 +622,30 @@ fn confirm_order(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mar
     let mut product = 
     state_mut
         .product_listings
-        .get_mut(&product_name)
+        .remove_and_get(&product_id) //once and order is confirmed, remove from product listing???
         .ok_or(MarketplaceError::ProductNotFound)?;
 
     // Ensure that the product is in a valid state for confirming the escrow
     ensure!(product.state == ProductState::Escrowed, MarketplaceError::InvalidProductState);
     
     product.state = ProductState::Confirmed;
+    let _merchant = product.merchant_id.clone();
+    let amount = product.amount.clone();
+    let merchant_address = product.wallet.clone();
     drop(product);
 
-     // Get the order by product_name
-     if let Some(order) = host.state_mut().orders.remove_and_get(&param.product_name) {
-        // Transfer funds
-        host.invoke_transfer(&param.seller, order.price)?;
 
+     //Get the order by product_name
+     if let Some(order) = host.state_mut().orders.remove_and_get(&param.product_id) {
+        // Transfer funds
+        match merchant_address {
+            Some(wallet) => {
+                host.invoke_transfer(&wallet, amount)?;
+            },
+            None => ()
+        }
         // It's important to call `Deletable::delete` on the value
         order.delete();
-
         Ok(())
     } else {
         // Escrow not found

@@ -73,30 +73,30 @@ async fn main() -> Result<(), Error> {
 
     let mut deployer = Deployer::new(concordium_client, &app.key_file)?;
 
-    // let mut modules_deployed: Vec<ModuleReference> = Vec::new();
+    let mut modules_deployed: Vec<ModuleReference> = Vec::new();
 
-    // for contract in app.module {
-    //     let wasm_module = get_wasm_module(contract.as_path())?;
+    for contract in app.module {
+        let wasm_module = get_wasm_module(contract.as_path())?;
 
-    //     let deploy_result = deployer
-    //         .deploy_wasm_module(wasm_module, None)
-    //         .await
-    //         .context("Failed to deploy a module.")?;
+        let deploy_result = deployer
+            .deploy_wasm_module(wasm_module, None)
+            .await
+            .context("Failed to deploy a module.")?;
 
-    //     match deploy_result {
-    //         DeployResult::ModuleDeployed(module_deploy_result) => {
-    //             modules_deployed.push(module_deploy_result.module_reference)
-    //         }
-    //         DeployResult::ModuleExists(module_reference) => modules_deployed.push(module_reference),
-    //     }
-    // }
+        match deploy_result {
+            DeployResult::ModuleDeployed(module_deploy_result) => {
+                modules_deployed.push(module_deploy_result.module_reference)
+            }
+            DeployResult::ModuleExists(module_reference) => modules_deployed.push(module_reference),
+        }
+    }
 
-    // // Write your own deployment/initialization script below. An example is given
-    // // here.
+    // Write your own deployment/initialization script below. An example is given
+    // here.
 
-    // //let param: OwnedParameter = OwnedParameter::empty(); // Example
+    //let param: OwnedParameter = OwnedParameter::empty(); // Example
 
-    // let init_method_name: &str = "init_gona_token"; // Example
+    let init_method_name: &str = "init_gonana_marketplace"; // Example
 
     // use gona_token::SetMetadataUrlParams;
 
@@ -105,20 +105,20 @@ async fn main() -> Result<(), Error> {
     //     hash: None
     // };
 
-    // let param = OwnedParameter::from_serial(&meta_data)?;
+    let param = OwnedParameter::from_serial(&init_method_name)?;
 
-    // let payload = InitContractPayload {
-    //     init_name: OwnedContractName::new(init_method_name.into())?,
-    //     amount: Amount::from_micro_ccd(0),
-    //     mod_ref: modules_deployed[0],
-    //     param,
-    // }; // Example
+    let payload = InitContractPayload {
+        init_name: OwnedContractName::new(init_method_name.into())?,
+        amount: Amount::from_micro_ccd(0),
+        mod_ref: modules_deployed[0],
+        param,
+    }; // Example
 
     
-    // let init_result: InitResult = deployer
-    //     .init_contract(payload, None, None)
-    //     .await
-    //     .context("Failed to initialize the contract.")?; // Example
+    let init_result: InitResult = deployer
+        .init_contract(payload, None, None)
+        .await
+        .context("Failed to initialize the contract.")?; // Example
 
     // This is how you can use a type from your smart contract.
     // use gonana_concordium_smart_contract::{ListProductParameter,PermitMessage,PermitParam}; // Example
@@ -145,20 +145,20 @@ async fn main() -> Result<(), Error> {
 
     //Gona Token==========================================================
 
-    use gona_token::{WrapParams,ApproveParam,SpendParam};
-    use concordium_cis2::{AdditionalData,Receiver,TokenAmountU64};
-    let wrap_param = WrapParams{
-        data: AdditionalData::empty(),
-        to: Receiver::Account(AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap())
-    };
+    // use gona_token::{WrapParams,ApproveParam,SpendParam};
+    // use concordium_cis2::{AdditionalData,Receiver,TokenAmountU64};
+    // let wrap_param = WrapParams{
+    //     data: AdditionalData::empty(),
+    //     to: Receiver::Account(AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap())
+    // };
      
-    let amount=TokenAmountU64(10);
+    // let amount=TokenAmountU64(10);
     
-    let spender = contracts_common::Address::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA".into()).unwrap());
-    let approve_param = ApproveParam::new(amount, spender);
+    // let spender = contracts_common::Address::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA".into()).unwrap());
+    // let approve_param = ApproveParam::new(amount, spender);
     
-    let owner = contracts_common::Address::Account(AccountAddress::from_str("3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr".into()).unwrap());
-    let spend_param = SpendParam::new(amount, owner);
+    // let owner = contracts_common::Address::Account(AccountAddress::from_str("3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr".into()).unwrap());
+    // let spend_param = SpendParam::new(amount, owner);
      
     
 
@@ -215,17 +215,27 @@ async fn main() -> Result<(), Error> {
     // Create a successful transaction.
 
     //let bytes = contracts_common::to_bytes(&param); // Example
-    let bytes = contracts_common::to_bytes(&spend_param);
+    //let bytes = contracts_common::to_bytes(&spend_param);
 
 
-    let update_payload = transactions::UpdateContractPayload {
-        amount: Amount::from_ccd(0),
-        //address: init_result.contract_address, 
-        address: ContractAddress::new(7625, 0),  
-        //receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
-        receive_name: OwnedReceiveName::new_unchecked("gona_token.transfer_from".to_string()),
-        message: bytes.try_into()?,
-    }; // Example
+
+
+
+
+    // let update_payload = transactions::UpdateContractPayload {
+    //     amount: Amount::from_ccd(0),
+    //     //address: init_result.contract_address, 
+    //     address: ContractAddress::new(7625, 0),  
+    //     //receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
+    //     receive_name: OwnedReceiveName::new_unchecked("gona_token.transfer_from".to_string()),
+    //     message: bytes.try_into()?,
+    // }; // Example
+
+
+
+
+
+
 
     // The transaction costs on Concordium have two components, one is based on the size of the
     // transaction and the number of signatures, and then there is a
@@ -241,10 +251,18 @@ async fn main() -> Result<(), Error> {
     // `GivenEnergy::Add(energy)` is the recommended helper function to handle the transaction cost automatically for the first component
     // (based on the size of the transaction and the number of signatures).
     // [GivenEnergy](https://docs.rs/concordium-rust-sdk/latest/concordium_rust_sdk/types/transactions/construct/enum.GivenEnergy.html)
-    let _update_contract = deployer
-         .update_contract(update_payload, Some(GivenEnergy::Add(Energy::from_str("1500000")?)), None)
-         .await
-         .context("Failed to update the contract.")?; // Example
+    
+    
+    
+    
+    // let _update_contract = deployer
+    //      .update_contract(update_payload, Some(GivenEnergy::Add(Energy::from_str("1500000")?)), None)
+    //      .await
+    //      .context("Failed to update the contract.")?; // Example
+
+
+
+
 
     // Write your own deployment/initialization script above. An example is given
     // here.

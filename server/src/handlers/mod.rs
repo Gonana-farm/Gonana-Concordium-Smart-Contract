@@ -1,5 +1,3 @@
-mod api;
-mod types;
-pub fn help(){
+pub mod api;
+pub mod types;
     
-}
