@@ -52,7 +52,7 @@ pub async fn list_product(
             //Simulate Transaction
             let context = ContractContext {
                 invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
-                contract: ContractAddress::new(7572, 0),
+                contract: ContractAddress::new(7630, 0),
                 amount: Amount::zero(),
                 method: receive_name.clone(),
                 parameter: parameter.clone(),
