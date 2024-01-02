@@ -1,9 +1,9 @@
 use std::str::FromStr;
-use actix_web::{get,post,Responder,HttpResponse, web::{Json, Path}};
+use actix_web::{post,Responder,HttpResponse, web::Json};
+//use actix_web::web::Path;
 use concordium_base::base::Energy;
 use validator::Validate;
-use log::{LevelFilter, info};
-use env_logger;
+use log::info;
 use concordium_rust_sdk::{
     common::types::Amount,
     types::{
@@ -20,7 +20,7 @@ use crate::handlers::types::{ListProductParam,Deployer,ListProduct};
 pub async fn list_product(
     body: Json<ListProduct>,
 ) -> impl Responder {
-    env_logger::builder().filter_level(LevelFilter::Info).init();
+    //env_logger::builder().filter_level(LevelFilter::Info).init();
     let is_valid = body.validate();
     match is_valid {
         Ok(_) => {
@@ -46,7 +46,7 @@ pub async fn list_product(
             let parameter = smart_contracts::OwnedParameter::try_from(bytes)
                 .expect("could not unwrap parameter");
             // receive method name on the contract
-            let receive_name = smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.permit".to_string()).unwrap();
+            let receive_name = smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.list_product".to_string()).unwrap();
             log::info!("Simulate transaction to check its validity.");
             
             //Simulate Transaction
@@ -70,7 +70,7 @@ pub async fn list_product(
                 let payload = transactions::Payload::Update {
                     payload: transactions::UpdateContractPayload {
                         amount: Amount::from_micro_ccd(0),
-                        address: ContractAddress::new(7572, 0),
+                        address: ContractAddress::new(7630, 0),
                         receive_name,
                         message: parameter,
                     },
@@ -121,7 +121,7 @@ async fn get_deployer()->Result<(Deployer,Client),anyhow::Error>{
     let endpoint = Endpoint::from_str(node)?;
     let concordium_client = v2::Client::new(endpoint).await?;
     let client_transfer = concordium_client.clone();
-    let key = std::path::Path::new("../key/3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe.export");
+    let key = std::path::Path::new("./key/3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe.export");
     let deployer = Deployer::new(concordium_client,key)?;
     Ok((deployer,client_transfer))
 }

@@ -123,7 +123,7 @@ async fn main() -> Result<(), Error> {
     // This is how you can use a type from your smart contract.
     // use gonana_concordium_smart_contract::{ListProductParameter,PermitMessage,PermitParam}; // Example
 
-    // let farmer = contracts_common::AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap();
+    let farmer = contracts_common::AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap();
 
     // let list_parameter =  ListProductParameter {
     //     farmer,
