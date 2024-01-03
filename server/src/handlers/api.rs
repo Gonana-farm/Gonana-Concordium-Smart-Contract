@@ -1,7 +1,8 @@
 use std::str::FromStr;
-use actix_web::{post,Responder,HttpResponse, web::Json};
+use actix_web::{get,post,Responder,HttpResponse, web::Json};
 //use actix_web::web::Path;
 use concordium_base::base::Energy;
+use concordium_contracts_common::OwnedParameter;
 use validator::Validate;
 use log::info;
 use concordium_rust_sdk::{
@@ -128,6 +129,45 @@ pub async fn list_product(
         }
     }
 }
+
+
+#[get("/listings")]
+pub async fn get_listings() -> impl Responder{
+    
+    let (deployer, mut client) = get_deployer().await.expect("error while getting deployer");
+    let bi = &concordium_rust_sdk::v2::BlockIdentifier::Best;
+    let context = ContractContext {
+        invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
+        contract: ContractAddress::new(7630, 0),
+        amount: Amount::zero(),
+        method: smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.view_orders".to_string()).unwrap(),
+        parameter: OwnedParameter::empty(),
+        energy: Energy { energy: 600000 },
+    };
+    let result = client.invoke_instance(bi, &context).await;
+    match &result.as_ref().unwrap().response {
+        InvokeContractResult::Success {
+            return_value: _,
+            events: _,
+            used_energy: _,
+        } => log::info!("TransactionSimulationSuccess"),
+        InvokeContractResult::Failure {
+            return_value: _,
+            reason,
+            used_energy: _,
+        } => {
+            log::info!("TransactionSimulationError {:#?}.", reason);
+            return HttpResponse::BadRequest().body("simulation failed for some reason")                 
+
+        }
+    }
+    
+
+
+    
+    HttpResponse::BadRequest().body("request has no pizza name")
+}
+
 
 async fn get_deployer()->Result<(Deployer,Client),anyhow::Error>{
     let node = "http://node.testnet.concordium.com:20000";
