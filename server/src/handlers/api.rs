@@ -12,6 +12,8 @@ use concordium_rust_sdk::{
     },
     v2::{self, Endpoint, Client},
 };
+use concordium_rust_sdk::smart_contracts::types::InvokeContractResult;
+
 
 const ENERGY: u64 = 60000;
 use crate::handlers::types::{ListProductParam,Deployer,ListProduct};
@@ -62,9 +64,26 @@ pub async fn list_product(
             let info = client
             .invoke_instance(&concordium_rust_sdk::v2::BlockIdentifier::Best, &context)
             .await;
+
+            match &info.as_ref().unwrap().response {
+                InvokeContractResult::Success {
+                    return_value: _,
+                    events: _,
+                    used_energy: _,
+                } => log::info!("TransactionSimulationSuccess"),
+                InvokeContractResult::Failure {
+                    return_value: _,
+                    reason,
+                    used_energy: _,
+                } => {
+                    log::info!("TransactionSimulationError {:#?}.", reason);
+                    return HttpResponse::BadRequest().body("simulation failed for some reason")                 
+
+                }
+            }
             
             //if simuation was succesfull, send transaction
-            if info.is_ok() {
+                
                 log::info!("Transaction simulation was successful");
                 log::info!("Create transaction.");
                 let payload = transactions::Payload::Update {
@@ -103,12 +122,6 @@ pub async fn list_product(
                         HttpResponse::BadRequest().body("request failed for some reason")                 
                     }
                 }
-
-            }else {
-                log::info!("Transaction simulation was not successful");
-                HttpResponse::BadRequest().body("request failed for some reason")
-            }
-
         },
         Err(_) => {
             HttpResponse::BadRequest().body("request has no pizza name")
