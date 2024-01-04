@@ -519,6 +519,10 @@ fn contract_permit(
 fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), MarketplaceError>{
     let parameter: ListProductParameter = ctx.parameter_cursor().get()?;
    
+    //ensure product has not been listed before
+    //todo!()
+
+
     // Check if the price is 0
     if parameter.amount <= Amount::zero() {
         return Err(MarketplaceError::InvalidPrice);
