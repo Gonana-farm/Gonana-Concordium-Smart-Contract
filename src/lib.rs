@@ -468,7 +468,8 @@ fn contract_permit(
     let valid_signature = host.check_account_signature(param.signer, &param.signature, &list_param)
         .expect("account signature was incorrect");
     ensure!(valid_signature, MarketplaceError::WrongSignature);
-
+    
+    //Execute Function Calls
     if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("internal_list_product") {
         let params: ListProductParameter = from_bytes(&message.payload).expect("could not unwrap payload");
         let response = internal_list_product(host, params)?;
@@ -480,9 +481,28 @@ fn contract_permit(
         Ok(response)
 
     }else if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("place_order") {
-        let _params: PlaceOrderParameter = from_bytes(&message.payload).expect("could not unwrap payload");
-        
+        let params: PlaceOrderParameter = from_bytes(&message.payload).expect("could not unwrap payload");
+        let state_mut = host.state_mut();
+        // Find the product by name
+        let mut product = 
+            state_mut
+            .product_listings
+            .get_mut(&params.product_id)
+            .ok_or(MarketplaceError::ProductNotFound)?;
+    
+        // Ensure that the product is in a valid state for placing an order
+        ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);    
+        let order = Order {
+            buyer_address:   params.buyer_address,
+            product_id: product.product_id.clone(),
+            amount: product.amount,
+            buyer_id: params.buyer_id
+        }; 
+        // Insert the order and update the product state to Escrowed 
+        ensure!(state_mut.orders.insert(params.product_id.clone(), order).is_none(), MarketplaceError::OrderAlreadyExists);    
+        product.state = ProductState::Escrowed;    
         Ok(())
+
         // CANCEL PLACED ORDERS!!!!!
     }else if message.entry_point.as_entrypoint_name() == EntrypointName::new_unchecked("cancel_order") {
         let params: CancelProductParameter = from_bytes(&message.payload).expect("could not unwrap payload");
@@ -520,6 +540,7 @@ fn list_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Mark
     let parameter: ListProductParameter = ctx.parameter_cursor().get()?;
    
     //ensure product has not been listed before
+    //can be handled by the web2 backend though
     //todo!()
 
 
@@ -554,11 +575,9 @@ fn cancel_product(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Ma
     let parameter: CancelProductParameter = ctx.parameter_cursor().get()?;
     let product_name = parameter.product_id.clone();
 
-
     // Check if the product is found
     if let Some(mut listing) = host.state_mut().product_listings.get_mut(&product_name) {
         ensure!(parameter.merchant_id == listing.merchant_id, MarketplaceError::WrongSignature);
-
         // Check if the product is in a cancellable state
         match listing.state {
             ProductState::Listed | ProductState::Escrowed => {
@@ -588,11 +607,9 @@ fn place_order(ctx: &ReceiveContext, host: &mut Host<State>, amount: Amount) -> 
         .ok_or(MarketplaceError::ProductNotFound)?;
 
     // Ensure that the product is in a valid state for placing an order
-    ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);
-    
+    ensure!(product.state == ProductState::Listed, MarketplaceError::InvalidProductState);    
     // Ensure that the full amount was paid
     ensure!(amount >= product.amount, MarketplaceError::InvalidPrice);
-
 
     // Create an order
     let order = Order {

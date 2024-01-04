@@ -96,6 +96,56 @@ impl ListProductParam {
     }
 }
 
+
+#[derive(Validate, Deserialize, Serialize, )]
+pub struct PlaceOrder {
+    pub product_id: String,
+    pub buyer_address:Option<String>,
+    pub buyer_id: String,
+    pub amount: String,
+}
+
+#[derive(Debug, concordium_std::Serial, concordium_contracts_common::Deserial)]
+pub struct PlaceOrderParam {
+    pub product_id: String,
+    pub buyer_address:Option<concordium_std::AccountAddress>,
+    pub buyer_id: String,
+    pub amount: Amount,
+
+}
+
+impl PlaceOrderParam {
+    pub fn new(
+        product_id:String,
+        amount:String,
+        wallet:Option<String>,
+        buyer_id:String
+    ) -> Self {
+        let micro_ccd = amount.parse::<u64>()
+            .context("interger could not be passed")
+            .unwrap();
+        let amount = Amount::from_micro_ccd(micro_ccd);
+        match wallet {
+            Some(wallet) => {
+                let farmer = concordium_std::AccountAddress::from_str(&wallet).unwrap();
+                Self{
+                    product_id,
+                    amount,
+                    buyer_address:Some(farmer),
+                    buyer_id}
+
+            },
+            None => {
+                Self{product_id,amount,buyer_address:None,buyer_id}
+
+            }
+        }
+    }
+}
+
+
+
+
 #[derive(Debug)]
 pub struct Deployer {
     /// The client to establish a connection to a Concordium node (V2 API).
@@ -115,4 +165,12 @@ impl Deployer {
             key: key_data.into(),
         })
     }
+}
+
+#[derive(Debug, concordium_std::Serial, Serialize,concordium_contracts_common::Deserial)]
+pub struct ViewOrders {
+    pub product_id: String,
+    pub amount: Amount,
+    pub buyer_address: Option<concordium_std::AccountAddress>,
+    pub buyer_id: String
 }
