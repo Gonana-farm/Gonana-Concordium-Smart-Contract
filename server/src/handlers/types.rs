@@ -8,9 +8,33 @@ use concordium_rust_sdk::smart_contracts::common as concordium_std;
 //use concordium_rust_sdk::smart_contracts::common::{self as contracts_common};
 use std::str::FromStr;
 
+#[derive(Debug, concordium_std::Serial,Serialize, concordium_contracts_common::Deserial)]
+pub enum ProductState {
+    Listed,
+    Escrowed,
+    Confirmed,
+    Cancelled,
+}
+
+/// The product parameters used to list a product on the blockchain
+#[derive(Debug, concordium_std::Serial, Serialize,concordium_contracts_common::Deserial)]
+pub struct ViewProductParam {
+    /// The product_id generated off-chain, that signifies the product on chain.
+    pub product_id: String, 
+    /// Amount of the product.
+    pub amount: Amount,
+    /// Wallet address of the creator, could be None.
+    pub wallet: Option<concordium_std::AccountAddress>,
+    /// Hash of the product parameters to prove intergrity. 
+    pub hash: Option<String>,
+    /// Farmer_id generated offchain that shows the id of a user.
+    pub farmer_id: String,
+    pub state: ProductState
+
+}
 
 // The product parameters used to list a product on the blockchain
-#[derive(Validate, Deserialize, Serialize)]
+#[derive(Validate, Deserialize, Serialize, )]
 pub struct ListProduct {
     /// The product_id generated off-chain, that signifies the product on chain.
     #[validate(length(min = 1, message = "product id is required"))]
@@ -28,7 +52,7 @@ pub struct ListProduct {
 
 
 /// The product parameters used to list a product on the blockchain
-#[derive(Debug, concordium_std::Serial)]
+#[derive(Debug, concordium_std::Serial, concordium_contracts_common::Deserial)]
 pub struct ListProductParam {
     /// The product_id generated off-chain, that signifies the product on chain.
     pub product_id: String, 

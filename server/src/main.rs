@@ -1,7 +1,7 @@
 mod handlers;
 
 use actix_web::{HttpServer, App};
-use handlers::api::list_product;
+use handlers::api::{list_product,get_listings};
 use log::LevelFilter;
 
 
@@ -17,7 +17,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {        
         App::new()
             .service(list_product)
-            //.service(buy_pizzas)
+            .service(get_listings)
         })
         .bind("127.0.0.1:8080")?
         .run()

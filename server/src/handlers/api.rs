@@ -14,10 +14,11 @@ use concordium_rust_sdk::{
     v2::{self, Endpoint, Client},
 };
 use concordium_rust_sdk::smart_contracts::types::InvokeContractResult;
+use crate::handlers::errors::MarketplaceError;
 
 
 const ENERGY: u64 = 60000;
-use crate::handlers::types::{ListProductParam,Deployer,ListProduct};
+use crate::handlers::types::{ListProductParam,Deployer,ListProduct, ViewProductParam};
 
 #[post("/product/list")]
 pub async fn list_product(
@@ -132,7 +133,7 @@ pub async fn list_product(
 
 
 #[get("/listings")]
-pub async fn get_listings() -> impl Responder{
+pub async fn get_listings() -> Result<Json<Vec<ViewProductParam>>,MarketplaceError>{
     
     let (deployer, mut client) = get_deployer().await.expect("error while getting deployer");
     let bi = &concordium_rust_sdk::v2::BlockIdentifier::Best;
@@ -140,32 +141,34 @@ pub async fn get_listings() -> impl Responder{
         invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
         contract: ContractAddress::new(7630, 0),
         amount: Amount::zero(),
-        method: smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.view_orders".to_string()).unwrap(),
+        method: smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.view_product_listings".to_string()).unwrap(),
         parameter: OwnedParameter::empty(),
-        energy: Energy { energy: 600000 },
+        energy: Energy { energy: 60000 },
     };
     let result = client.invoke_instance(bi, &context).await;
     match &result.as_ref().unwrap().response {
         InvokeContractResult::Success {
-            return_value: _,
+            return_value,
             events: _,
             used_energy: _,
-        } => log::info!("TransactionSimulationSuccess"),
+        } => {
+            let value:Vec<ViewProductParam> = concordium_contracts_common::from_bytes(
+                &return_value.clone()
+                .expect("An error occured while trying to unwrap value").value)
+                .expect("An error occured while trying to unwrap product param");
+            Ok(Json(value))
+
+        },
         InvokeContractResult::Failure {
             return_value: _,
             reason,
             used_energy: _,
         } => {
             log::info!("TransactionSimulationError {:#?}.", reason);
-            return HttpResponse::BadRequest().body("simulation failed for some reason")                 
-
+            Err(MarketplaceError::TransactionSimulationError)
         }
     }
     
-
-
-    
-    HttpResponse::BadRequest().body("request has no pizza name")
 }
 
 

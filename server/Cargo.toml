@@ -22,3 +22,4 @@ concordium-contracts-common = "8.1.1"
 anyhow = "1.0"
 concordium_base = "3.2.0" 
 chrono = "0.4.19"
+
