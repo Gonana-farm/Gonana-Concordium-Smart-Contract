@@ -12,14 +12,13 @@ async fn main() -> std::io::Result<()> {
     env_logger::builder().filter_level(LevelFilter::Info).init();
 
 
-    log::info!("server initialized and running at port 8080");
-    log::info!("http://127.0.0.1:8080");
+    log::info!("server initialized and running at port 8088");
     HttpServer::new(move || {        
         App::new()
             .service(list_product)
             .service(get_listings)
         })
-        .bind("0.0.0.0")?
+        .bind("0.0.0.0:8088")?
         .run()
         .await
 }
