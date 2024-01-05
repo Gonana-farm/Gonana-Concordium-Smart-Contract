@@ -56,7 +56,7 @@ pub async fn list_product(
             //Simulate Transaction
             let context = ContractContext {
                 invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
-                contract: ContractAddress::new(7630, 0),
+                contract: ContractAddress::new(7637, 0),//7630
                 amount: Amount::zero(),
                 method: receive_name.clone(),
                 parameter: parameter.clone(),
@@ -91,7 +91,7 @@ pub async fn list_product(
                 let payload = transactions::Payload::Update {
                     payload: transactions::UpdateContractPayload {
                         amount: Amount::from_micro_ccd(0),
-                        address: ContractAddress::new(7630, 0),
+                        address: ContractAddress::new(7637, 0), //7630
                         receive_name,
                         message: parameter,
                     },
@@ -161,7 +161,7 @@ pub async fn order(
             //Simulate Transaction
             let context = ContractContext {
                 invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
-                contract: ContractAddress::new(7630, 0),
+                contract: ContractAddress::new(7637, 0), //7630
                 amount: Amount::from_micro_ccd(amount),
                 method: receive_name.clone(),
                 parameter: parameter.clone(),
@@ -197,7 +197,7 @@ pub async fn order(
                 let payload = transactions::Payload::Update {
                     payload: transactions::UpdateContractPayload {
                         amount: Amount::from_micro_ccd(amount),
-                        address: ContractAddress::new(7630, 0),
+                        address: ContractAddress::new(7637, 0),
                         receive_name,
                         message: parameter,
                     },
@@ -246,7 +246,7 @@ pub async fn get_listings() -> Result<Json<Vec<ViewProductParam>>,MarketplaceErr
     let bi = &concordium_rust_sdk::v2::BlockIdentifier::Best;
     let context = ContractContext {
         invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
-        contract: ContractAddress::new(7630, 0),
+        contract: ContractAddress::new(7637, 0),
         amount: Amount::zero(),
         method: smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.view_product_listings".to_string()).unwrap(),
         parameter: OwnedParameter::empty(),
@@ -285,7 +285,7 @@ pub async fn get_orders() -> Result<Json<Vec<ViewOrders>>,MarketplaceError>{
     let bi = &concordium_rust_sdk::v2::BlockIdentifier::Best;
     let context = ContractContext {
         invoker: Some(concordium_rust_sdk::types::Address::Account(deployer.key.address)),
-        contract: ContractAddress::new(7630, 0),
+        contract: ContractAddress::new(7637, 0),
         amount: Amount::zero(),
         method: smart_contracts::OwnedReceiveName::try_from("gonana_marketplace.view_orders".to_string()).unwrap(),
         parameter: OwnedParameter::empty(),

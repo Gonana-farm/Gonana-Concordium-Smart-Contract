@@ -23,7 +23,7 @@ async fn main() -> std::io::Result<()> {
             .service(order)
             .service(get_orders)
         })
-        .bind("0.0.0.0:8088")?
+        .bind("127.0.0.1:8088")?
         .run()
         .await
 }

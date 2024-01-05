@@ -1,4 +1,6 @@
-// will contain our new enum pizza error here
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
+
+
 use actix_web::{
     http::{header::ContentType, StatusCode},
     HttpResponse, ResponseError,
