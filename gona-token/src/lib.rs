@@ -79,6 +79,22 @@ impl ApproveParam {
         Self{amount,spender}
     }
 }
+#[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
+pub struct  MintParam {
+    token_id: TokenIdUnit,
+    amount: TokenAmountU64,
+    owner: Address,
+}
+
+impl MintParam {
+    pub fn new(
+        token_id:TokenIdUnit,
+        amount: TokenAmountU64,
+        owner: Address
+    ) -> Self {
+        Self {token_id,amount,owner}
+    }
+}
 
 #[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
 pub struct SpendParam {
@@ -230,6 +246,8 @@ pub enum CustomContractError {
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
     FailedUpgradeUnsupportedModuleVersion,
+    /// Caller is not the owner of the contract
+    CallerNotAdmin,
 }
 
 pub type ContractError = Cis2Error<CustomContractError>;
@@ -1151,6 +1169,26 @@ fn approve( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> {
 
 }
 
+
+
+#[receive(
+    contract = "gona_token",
+    name = "mint",
+    parameter = "MintParam",
+    error = "ContractError",
+    mutable
+)]
+fn contract_mint( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> { 
+    ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
+    ensure!(host.state().admin==ctx.sender(),ContractError::Unauthorized);
+    let (state, state_builder) = host.state_and_builder();
+    let params: MintParam = ctx.parameter_cursor().get()?;
+    let res = state.mint(&params.token_id, params.amount, &params.owner, state_builder)
+        .expect("something went wrong with the approve function");
+    Ok(res)
+}
+
+
 #[receive(
     contract = "gona_token",
     name = "transfer_from",
@@ -1174,11 +1212,11 @@ fn transfer_from( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult
 
 // // View function to get ContractId
 #[receive(contract = "gona_token", name = "gona_id", return_value = "ContractTokenId")]
-fn view_orders(_ctx: &ReceiveContext, _host: &Host<State>) -> ReceiveResult<ContractTokenId> {
+fn view_id(_ctx: &ReceiveContext, _host: &Host<State>) -> ReceiveResult<ContractTokenId> {
     Ok(TOKEN_ID_GONA)
 }
 
-#[receive(contract = "gona_token", name = "check_approval", return_value = "ContractTokenId")]
+#[receive(contract = "gona_token", name = "check_approval", return_value = "bool")]
 fn check_approval(ctx: &ReceiveContext, host: &Host<State>)->ReceiveResult<bool>{
     Ok(host.state().approvals.get(&ctx.sender()).is_some())
 }

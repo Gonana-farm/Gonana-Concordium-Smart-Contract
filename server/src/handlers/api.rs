@@ -317,6 +317,9 @@ pub async fn get_orders() -> Result<Json<Vec<ViewOrders>>,MarketplaceError>{
     
 }
 
+
+
+
 async fn get_deployer()->Result<(Deployer,Client),anyhow::Error>{
     let node = "http://node.testnet.concordium.com:20000";
     let endpoint = Endpoint::from_str(node)?;

@@ -20,6 +20,7 @@ use concordium_rust_sdk::{
 };
 use contracts_common::AccountAddress;
 use deployer::{DeployResult, Deployer, InitResult};
+use gonana_concordium_smart_contract::{ListProductParameter, PermitMessage, PermitParam};
 use std::{
     io::Cursor,
     path::{Path, PathBuf}, str::FromStr, u64::MAX,
@@ -93,12 +94,12 @@ async fn main() -> Result<(), Error> {
     //     }
     // }
 
-    // // Write your own deployment/initialization script below. An example is given
-    // // here.
+    // Write your own deployment/initialization script below. An example is given
+    // here.
 
-    // //let param: OwnedParameter = OwnedParameter::empty(); // Example
+    //let param: OwnedParameter = OwnedParameter::empty(); // Example
 
-    // let init_method_name: &str = "init_gonana_marketplace"; // Example
+   // let init_method_name: &str = "init_gonana_marketplace"; // Example
 
     // use gona_token::SetMetadataUrlParams;
 
@@ -125,34 +126,36 @@ async fn main() -> Result<(), Error> {
     // This is how you can use a type from your smart contract.
     // use gonana_concordium_smart_contract::{ListProductParameter,PermitMessage,PermitParam}; // Example
 
-    //let farmer = contracts_common::AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap();
+    let farmer = contracts_common::AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap();
+    let amount = Amount::from_micro_ccd(100);
 
-    // let list_parameter =  ListProductParameter {
-    //     farmer,
-    //     price: Amount::from_ccd(10),
-    //     product: "2000 Strawberrys".into()
-    // }; // Example
+    let list_parameter =  ListProductParameter::new( 
+        "bagofpotatoes".into(),
+        amount,
+        Some(farmer),
+        "Steven".into()
+    ); // Example
 
     //Time
-    // let transaction_expiry_seconds = chrono::Utc::now().timestamp() as u64 + 3600 ;
+    //let transaction_expiry_seconds = chrono::Utc::now().timestamp() as u64 + 3600 ;
    
 
-    // let permit_message = PermitMessage{
-    //     contract_address: ContractAddress::new(7572, 0),
-    //     nonce: 0,
-    //     timestamp: Timestamp::from_timestamp_millis(MAX),
-    //     entry_point: OwnedEntrypointName::new_unchecked("internal_list_product".into()),
-    //     payload: concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter),
-    // };
+    let permit_message = PermitMessage{
+        contract_address: ContractAddress::new(7637, 0),
+        nonce: 3,  //should be +1 at rerun
+        timestamp: Timestamp::from_timestamp_millis(MAX),
+        entry_point: OwnedEntrypointName::new_unchecked("internal_list_product".into()),
+        payload: concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter),
+    };
 
     //Gona Token==========================================================
 
-    use gona_token::{WrapParams,ApproveParam,SpendParam};
-    use concordium_cis2::{AdditionalData,Receiver,TokenAmountU64};
-    let wrap_param = WrapParams{
-        data: AdditionalData::empty(),
-        to: Receiver::Account(AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap())
-    };
+    // use gona_token::{WrapParams,ApproveParam,SpendParam};
+    // use concordium_cis2::{AdditionalData,Receiver,TokenAmountU64};
+    // let wrap_param = WrapParams{
+    //     data: AdditionalData::empty(),
+    //     to: Receiver::Account(AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap())
+    // };
      
     // let amount=TokenAmountU64(10);
     
@@ -175,13 +178,13 @@ async fn main() -> Result<(), Error> {
     // // get secret key from byte array
     // let key = SecretKey::from_bytes(&byte_array)?;
     
-    // // change list_parameter to bytes
-    //  let serialized_list_param = contracts_common::to_bytes(&list_parameter);
+    // change list_parameter to bytes
+    let serialized_list_param = contracts_common::to_bytes(&list_parameter);
 
 
     // // sign the list parameter
     // let signature = key.sign(&serialized_list_param);
-    //let signature = deployer.key.keys.sign_message(&serialized_list_param);
+    let signature = deployer.key.keys.sign_message(&serialized_list_param);
 
     // // change signature to vec of u8
     // let sig = signature.to_bytes();
@@ -204,37 +207,32 @@ async fn main() -> Result<(), Error> {
     //let signer = AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA")?;
     
     // construct permit param 
-    // let param: PermitParam = PermitParam {
-    //     message : permit_message,
-    //     signature,
-    //     // signature: AccountSignatures {
-    //     //     sigs: signature_map,
-    //     // },
-    //     signer: deployer.key.address
-    // };
+    let param: PermitParam = PermitParam {
+        message : permit_message,
+        signature,
+        // signature: AccountSignatures {
+        //     sigs: signature_map,
+        // },
+        signer: deployer.key.address
+    };
 
 
     // Create a successful transaction.
 
-    //let bytes = contracts_common::to_bytes(&param); // Example
-    let bytes = contracts_common::to_bytes(&wrap_param);
-
-
+    let bytes = contracts_common::to_bytes(&param); // Example
+    //let bytes = contracts_common::to_bytes(&spend_param);
 
 
 
 
     let update_payload = transactions::UpdateContractPayload {
-        amount: Amount::from_ccd(100),
+        amount: Amount::from_ccd(0),
         //address: init_result.contract_address, 
-        address: ContractAddress::new(7625, 0),  
-        //receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
-        receive_name: OwnedReceiveName::new_unchecked("gona_token.wrap".to_string()),
+        address: ContractAddress::new(7637, 0),  
+        receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
+        //receive_name: OwnedReceiveName::new_unchecked("gona_token.transfer_from".to_string()),
         message: bytes.try_into()?,
     }; // Example
-
-
-
 
 
 
