@@ -1,4 +1,4 @@
-#![cfg_attr(debug_assertions, allow(dead_code, unused_imports))]
+#![cfg_attr(debug_assertions, allow(dead_code, unused_imports, unused_variables))]
 
 pub mod deployer;
 use anyhow::{Context, Error};
@@ -75,7 +75,12 @@ async fn main() -> Result<(), Error> {
 
     let mut deployer = Deployer::new(concordium_client, &app.key_file)?;
 
-    //let mut modules_deployed: Vec<ModuleReference> = Vec::new();
+// ======================================================================================================================================================================================
+// ======================================================================    Deploying and Initialization   =============================================================================
+// ======================================================================================================================================================================================
+
+
+    // let mut modules_deployed: Vec<ModuleReference> = Vec::new();
 
     // for contract in app.module {
     //     let wasm_module = get_wasm_module(contract.as_path())?;
@@ -96,7 +101,7 @@ async fn main() -> Result<(), Error> {
     // // Write your own deployment/initialization script below. An example is given
     // // here.
 
-    // //let param: OwnedParameter = OwnedParameter::empty(); // Example
+    // let param: OwnedParameter = OwnedParameter::empty(); // Example
 
     // let init_method_name: &str = "init_gona_token"; // Example
 
@@ -122,49 +127,35 @@ async fn main() -> Result<(), Error> {
     //     .await
     //     .context("Failed to initialize the contract.")?; // Example
 
-    // This is how you can use a type from your smart contract.
-    // use gonana_concordium_smart_contract::{ListProductParameter,PermitMessage,PermitParam}; // Example
+    // // This is how you can use a type from your smart contract. 
 
-    //let farmer = contracts_common::AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap();
 
-    // let list_parameter =  ListProductParameter {
-    //     farmer,
-    //     price: Amount::from_ccd(10),
-    //     product: "2000 Strawberrys".into()
-    // }; // Example
+    // ======================================================================================================================================================================================
+    // ======================================================================    Deploying and Initialization Ends   ========================================================================
+    // ======================================================================================================================================================================================
 
-    //Time
-    // let transaction_expiry_seconds = chrono::Utc::now().timestamp() as u64 + 3600 ;
-   
 
-    // let permit_message = PermitMessage{
-    //     contract_address: ContractAddress::new(7572, 0),
-    //     nonce: 0,
-    //     timestamp: Timestamp::from_timestamp_millis(MAX),
-    //     entry_point: OwnedEntrypointName::new_unchecked("internal_list_product".into()),
-    //     payload: concordium_rust_sdk::smart_contracts::common::to_bytes(&list_parameter),
-    // };
 
-    //Gona Token==========================================================
-
+    // admin of token is 3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr
     use gona_token::{WrapParams,ApproveParam,SpendParam,MintParam};
     use concordium_cis2::{AdditionalData,Receiver,TokenAmountU64};
     let _wrap_param = WrapParams{
         data: AdditionalData::empty(),
         to: Receiver::Account(AccountAddress::from_str("3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe").unwrap())
     };
+    //3fSng7WoD3fkwpQyYtLsTg4gC1g7XjQrCKF1UNyCPTyEVVidWz       Tim's Address
     let owner = contracts_common::Address::Account(AccountAddress::from_str("3fSng7WoD3fkwpQyYtLsTg4gC1g7XjQrCKF1UNyCPTyEVVidWz".into()).unwrap());
-    let amount: TokenAmountU64=TokenAmountU64(100000);
+    let amount = TokenAmountU64(1000);
 
     let token_id = TokenIdUnit();
     let mint_param = MintParam::new(token_id,amount,owner);
      
     
-    // let spender = contracts_common::Address::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA".into()).unwrap());
-    // let approve_param = ApproveParam::new(amount, spender);
+    let spender = contracts_common::Address::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA".into()).unwrap());
+    let approve_param = ApproveParam::new(amount, spender,token_id);
     
-    // let owner = contracts_common::Address::Account(AccountAddress::from_str("3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr".into()).unwrap());
-    // let spend_param = SpendParam::new(amount, owner);
+    let owner = contracts_common::Address::Account(AccountAddress::from_str("3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr".into()).unwrap());
+    let spend_param = SpendParam::new(amount, owner, token_id);
      
     
 
@@ -231,8 +222,7 @@ async fn main() -> Result<(), Error> {
     let update_payload = transactions::UpdateContractPayload {
         amount: Amount::zero(),
         //address: init_result.contract_address, 
-        address: ContractAddress::new(7643, 0),  
-        //receive_name: OwnedReceiveName::new_unchecked("gonana_marketplace.permit".to_string()),
+        address: ContractAddress::new(7656, 0),  
         receive_name: OwnedReceiveName::new_unchecked("gona_token.mint".to_string()),
         message: bytes.try_into()?,
     }; // Example
@@ -289,5 +279,8 @@ async fn main() -> Result<(), Error> {
 
 //Gona Token
 // Initializing contract....
-//Sent transaction with hash: 1fade06b697238e3ee6983cf209d018bd6e8ff77572db2ed36cddd2356cfefd8
-//Transaction finalized: tx_hash=1fade06b697238e3ee6983cf209d018bd6e8ff77572db2ed36cddd2356cfefd8 contract=(7625, 0)
+// Transaction finalized: tx_hash=283a9276166847c8190ef06b796f176d9a0766b77e6c4afd7081386e33ee1e37 contract=(7655, 0)
+
+
+// cargo run -- --node http://node.testnet.concordium.com:20000 --account ~/3Yk9hBWCS1wYf5xyuhtPLU22K2YgiHztPXCV43SsH5YV3ZDxKr.export --module /Users/mac/Gonana-Concordium-Smart-Contract/gona-token/out/token.wasm.v1
+// cargo run -- --node http://node.testnet.concordium.com:20000 --account ~/36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA.export --module /Users/mac/Gonana-Concordium-Smart-Contract/gona-token/out/token.wasm.v1

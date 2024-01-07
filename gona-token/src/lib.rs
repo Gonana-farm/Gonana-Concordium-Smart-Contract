@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+
 use concordium_cis2::{Cis2Event, *};
 use concordium_std::*;
 
@@ -67,16 +68,16 @@ struct State<S: HasStateApi = StateApi> {
 pub struct ApproveParam {
     amount: TokenAmountU64,
     spender: Address,
-    //token_id: TokenIdUnit,
+    token_id: TokenIdUnit,
 }
 
 impl ApproveParam {
     pub fn new(
         amount:TokenAmountU64,
         spender:Address,
-        //token_id: TokenIdUnit
+        token_id: TokenIdUnit
     ) -> Self{
-        Self{amount,spender}
+        Self{amount,spender,token_id}
     }
 }
 #[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
@@ -100,16 +101,16 @@ impl MintParam {
 pub struct SpendParam {
     amount: TokenAmountU64,
     owner: Address,
-    //token_id: TokenIdUnit,
+    token_id: TokenIdUnit,
 }
 
 impl SpendParam {
     pub fn new(
         amount:TokenAmountU64,
         owner:Address,
-        //token_id: TokenIdUnit
+        token_id: TokenIdUnit
     ) -> Self{
-        Self{amount,owner}
+        Self{amount,owner,token_id}
     }
 }
 
@@ -248,6 +249,12 @@ pub enum CustomContractError {
     FailedUpgradeUnsupportedModuleVersion,
     /// Caller is not the owner of the contract
     CallerNotAdmin,
+    /// User has not been approved to spend tokens
+    UserIsNotApprovedToSpendTokens,
+    /// User does not own tokens on the contract
+    UserDoesNotOwnTokens,
+    /// Amount passed is greater than amount approved to spend
+    AmountIsGreaterThanApproval
 }
 
 pub type ContractError = Cis2Error<CustomContractError>;
@@ -397,23 +404,24 @@ impl State {
         Ok(())
     }
 
-    /// Approves an address to spend tokens belonging to an owner
+    /// Approves an address to spend tokens belonging to the caller.
     /// Results in an error if the token id does not exist in the state or if
-    /// Causes a run time error if the owner does not have tokens on the contract
+    /// the caller does not have tokens on the contract. it also results in an
+    /// error if the balance of the caller is not greater than the approved amount.
     fn approve(
         &mut self,
-        //token_id: &ContractTokenId,
+        token_id: &ContractTokenId,
         amount: TokenAmountU64,
         owner: &Address,
         spender: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
-        //ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
+        ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
         if amount == 0u64.into() {
             return Ok(());
         }
         let owner_acc = self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?; //this does not work
-        ensure!(owner_acc.balance >= amount, ContractError::InsufficientFunds); // this does not work yet
+        ensure!(owner_acc.balance.0 >= amount.0, ContractError::InsufficientFunds); // this does not work yet
         if self.approvals.get(owner).is_none() {
             let mut param = state_builder.new_map();
             param.insert(spender.to_owned(), amount);
@@ -437,28 +445,28 @@ impl State {
 
     /// A function that transfer a token for an already approved address.
     /// it consumes the total amount of approved coins.
-    // todo() !! allow owners to transfer part of the approved coin.
+    // todo() !! allow spenders to transfer part of the approved coin.
     // take care of owner non approval error
         // - the contract does not take care of calling transfer_from on owner parameter that does not give approvals to an address
         // - WHY!!!!!!!!!
     #[allow(unused_variables)]
     fn transfer_from(
         &mut self,
-        //token_id: &ContractTokenId,
-        //amount: TokenAmountU64,
+        token_id: &ContractTokenId,
+        amount_aprv: TokenAmountU64,
         owner: &Address,
         spender: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
-        //ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
-        ensure!(self.approvals.get(owner).unwrap().get(spender).is_some(),ContractError::Custom(CustomContractError::InvokeTransferError)); // - THIS DOES NOT WORK
-        let amount = self.approvals.get(owner).unwrap().get(spender).unwrap().clone();        
+        ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
+        //ensure_eq!(self.approvals.get(owner).unwrap().get(spender).is_some(), true, ContractError::Custom(CustomContractError::InvokeTransferError)); // - THIS DOES NOT WORK
+        let  amount = self.approvals.get(owner).unwrap().get(spender).unwrap().clone(); 
         let mut param = state_builder.new_map();
         param.insert(spender.to_owned(), TokenAmountU64(0));
         self.approvals.insert(owner.to_owned(), param);
         {
             let mut from_state =
-                self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?;
+                self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?; //means does not even own tokens
             ensure!(from_state.balance >= amount, ContractError::InsufficientFunds);
             from_state.balance -= amount;
         }
@@ -1163,7 +1171,9 @@ fn approve( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> {
     ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
     let (state, state_builder) = host.state_and_builder();
     let params: ApproveParam = ctx.parameter_cursor().get()?;
-    let res = state.approve(params.amount, &ctx.sender(), &params.spender, state_builder)
+    let owner_acc = state.token.get(&ctx.sender()).ok_or(ContractError::Custom(CustomContractError::UserDoesNotOwnTokens))?; //this does not work
+    ensure!(owner_acc.balance >= params.amount, ContractError::InsufficientFunds); // this does not work yet
+    let res = state.approve(&params.token_id,params.amount, &ctx.sender(), &params.spender, state_builder)
         .expect("something went wrong with the approve function");
     Ok(res)
 
@@ -1200,8 +1210,12 @@ fn transfer_from( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult
     ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
     let (state, state_builder) = host.state_and_builder();
     let params: SpendParam = ctx.parameter_cursor().get()?;
+    ensure_eq!(state.approvals.get(&params.owner).unwrap().get(&ctx.sender()).is_some(), true, ContractError::Custom(CustomContractError::UserIsNotApprovedToSpendTokens)); 
+    let amount = state.approvals.get(&params.owner).unwrap().get(&ctx.sender()).unwrap().clone();
+    ensure!(params.amount <= amount, ContractError::Custom(CustomContractError::AmountIsGreaterThanApproval));    
     let _res = state.transfer_from(
-        //&params.token_id, 
+        &params.token_id, 
+        params.amount,
         &params.owner, 
         &ctx.sender(), 
         state_builder
