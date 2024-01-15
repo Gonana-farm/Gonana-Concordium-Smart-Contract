@@ -126,6 +126,18 @@ pub struct CancelProductParameter{
 
 
 
+#[derive(Serialize, SchemaType)]
+struct UpgradeParams {
+    /// The new module reference.
+    module:  ModuleReference,
+    /// Optional entrypoint to call in the new module after upgrade.
+    migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
+}
+
+
+
+
+
 /// List of supported entrypoints by the `permit` function (CIS3 standard).
 //const SUPPORTS_PERMIT_ENTRYPOINTS: [EntrypointName; 2] =
     //[EntrypointName::new_unchecked("updateOperator"), EntrypointName::new_unchecked("list_product")];
@@ -694,21 +706,37 @@ fn view_orders(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<O
 }
 
 
-//list_product
-//concordium-client contract update  gonana_marketplace_instance --entrypoint list_product --parameter-json ./list_product.json --schema ./schema.bin --sender TimConcordiumWallet  --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
-
-//cancel_product
-//concordium-client contract update  gonana_marketplace_instance --entrypoint cancel_product --parameter-json ./cancel_product.json --schema ./schema.bin --sender TimConcordiumWallet  --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
-
-//view product_listings
-//concordium-client contract invoke   gonana_marketplace_instance --entrypoint view_product_listings --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
-
-//view orders
-// concordium-client contract invoke   gonana_marketplace_instance --entrypoint view_orders --energy 2000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
-
-//place_orders
-//concordium-client contract update  gonana_marketplace_instance --entrypoint place_order --parameter-json ./place_order.json --amount 1000 --schema ./schema.bin --sender TimConcordiumWallet  --energy 3000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
 
 
-//confirm_orders
-//concordium-client contract update  gonana_marketplace_instance --entrypoint confirm_order --parameter-json ./place_order.json  --schema ./schema.bin --sender TimConcordiumWallet  --energy 3000 --grpc-port 20000 --grpc-ip node.testnet.concordium.com
+//function to upgrade contract
+#[receive(
+    contract = "my_contract",
+    name = "upgrade",
+    parameter = "UpgradeParams",
+    low_level
+)]
+fn contract_upgrade(
+    ctx: &ReceiveContext,
+    host: &mut LowLevelHost,
+) -> ReceiveResult<()> {
+    // Check that only the owner is authorized to upgrade the smart contract.
+    ensure!(ctx.sender().matches_account(&ctx.owner()));
+    // Parse the parameter.
+    let params: UpgradeParams = ctx.parameter_cursor().get()?;
+    // Trigger the upgrade.
+    host.upgrade(params.module)?;
+    // Call the migration function if provided.
+    if let Some((func, parameters)) = params.migrate {
+        host.invoke_contract_raw(
+            &ctx.self_address(),
+            parameters.as_parameter(),
+            func.as_entrypoint_name(),
+            Amount::zero(),
+        )?;
+    }
+    Ok(())
+}
+
+
+
+
