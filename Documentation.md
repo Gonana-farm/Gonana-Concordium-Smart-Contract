@@ -80,7 +80,7 @@ The contract is structured into the following main components:
 - **Mutability:** Mutable
 - Sample Parameter:
 
-json
+```json
 
 {
 "product_id": "12345",
@@ -89,7 +89,7 @@ json
 "hash": "abcdef1234567890",
 "merchant_id": "merchant_123"
 }
-
+```
 ### `cancel_product`
 
 - **Description:** Cancel or unlist a product.
@@ -97,13 +97,13 @@ json
 - **Mutability:** Mutable
 - Sample Parameter:
 
-json
+```json
 
 {
 "product_id": "12345",
 "merchant_id": "merchant_123"
 }
-
+```
 ### `place_order`
 
 - **Description:** Place an order for a product.
@@ -111,7 +111,7 @@ json
 - **Mutability:** Mutable, Payable
 - Sample Parameter:
 
-json
+```json
 
 {
 "product_id": "12345",
@@ -119,7 +119,7 @@ json
 "buyer_id": "buyer_456",
 "amount": 600
 }
-
+```
 ### `confirm_order`
 
 - **Description:** Confirm an order and release funds from escrow.
@@ -127,7 +127,7 @@ json
 - **Mutability:** Mutable
 - Sample Parameter:
 
-json
+```json
 
 {
 "product_id": "12345",
@@ -135,6 +135,7 @@ json
 "buyer_id": "buyer_456",
 "amount": 600
 }
+```
 
 ### `view_product_listings`
 
@@ -142,7 +143,7 @@ json
 - **Return Type:** `Vec<ProductListing>`
 - Sample Return Type:
 
-json
+```json
 
 [
 {
@@ -154,6 +155,7 @@ json
 "state": "Listed"
 },
 ]
+```
 
 ### `view_orders`
 
@@ -161,7 +163,7 @@ json
 - **Return Type:** `Vec<Order>`
 - Sample Return Type:
 
-json
+```json
 
 [
 {
@@ -171,6 +173,7 @@ json
 "buyer_id": "buyer_456"
 },
 ]
+```
 
 ### `permit`
 
@@ -179,7 +182,7 @@ json
 - **Mutability:** Mutable
 - Sample Parameter:
 
-json
+```json
 
 {
 "signature": {
@@ -194,7 +197,7 @@ json
 "payload": [0, 1, 2, 3]
 }
 }
-
+```
 ## Initialization
 
 ### `init`
@@ -212,11 +215,12 @@ json
 - **Return Type:** `PublicKeyOfQueryResponse`
 - Sample Parameter:
 
-json
+```json
 
 {
 "queries": ["account_address_1", "account_address_2"]
 }
+```
 
 ### `nonceOf`
 
@@ -225,12 +229,12 @@ json
 - **Return Type:** `NonceOfQueryResponse`
 - Sample Parameter:
 
-json
+```json
 
 {
 "queries": ["account_address_1", "account_address_2"]
 }
-
+```
 ### `viewMessageHash`
 
 - **Description:** Calculate the message hash for permit function.
@@ -238,7 +242,7 @@ json
 - **Return Type:** `[u8;32]`
 - Sample Parameter:
 
-json
+```json
 
 {
 "signature": {
@@ -246,7 +250,7 @@ json
 },
 "signer": "signer_address_here"
 }
-
+```
 ## Events
 
 - `NonceEvent`: Logged when the `permit` function is invoked, tracking the nonce used by the signer of the `PermitMessage`.
