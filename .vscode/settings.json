@@ -1,5 +1,5 @@
 {
-  "editor.inlineSuggest.showToolbar": "onHover",
+  "editor.inlineSuggest.showToolbar": "always",
   "rust-analyzer.linkedProjects": [
     "./Cargo.toml",
     "./server/Cargo.toml",

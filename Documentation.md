@@ -81,15 +81,15 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"product_id": "12345",
-"amount": 500,
-"wallet": "account_address_here",
-"hash": "abcdef1234567890",
-"merchant_id": "merchant_123"
+  "product_id": "12345",
+  "amount": 500,
+  "wallet": "account_address_here",
+  "hash": "abcdef1234567890",
+  "merchant_id": "merchant_123"
 }
 ```
+
 ### `cancel_product`
 
 - **Description:** Cancel or unlist a product.
@@ -98,12 +98,12 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"product_id": "12345",
-"merchant_id": "merchant_123"
+  "product_id": "12345",
+  "merchant_id": "merchant_123"
 }
 ```
+
 ### `place_order`
 
 - **Description:** Place an order for a product.
@@ -112,14 +112,14 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"product_id": "12345",
-"buyer_address": "buyer_address_here",
-"buyer_id": "buyer_456",
-"amount": 600
+  "product_id": "12345",
+  "buyer_address": "buyer_address_here",
+  "buyer_id": "buyer_456",
+  "amount": 600
 }
 ```
+
 ### `confirm_order`
 
 - **Description:** Confirm an order and release funds from escrow.
@@ -128,12 +128,11 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"product_id": "12345",
-"buyer_address": "buyer_address_here",
-"buyer_id": "buyer_456",
-"amount": 600
+  "product_id": "12345",
+  "buyer_address": "buyer_address_here",
+  "buyer_id": "buyer_456",
+  "amount": 600
 }
 ```
 
@@ -144,16 +143,15 @@ The contract is structured into the following main components:
 - Sample Return Type:
 
 ```json
-
 [
-{
-"product_id": "12345",
-"amount": 500,
-"wallet": "account_address_here",
-"hash": "abcdef1234567890",
-"merchant_id": "merchant_123",
-"state": "Listed"
-},
+  {
+    "product_id": "12345",
+    "amount": 500,
+    "wallet": "account_address_here",
+    "hash": "abcdef1234567890",
+    "merchant_id": "merchant_123",
+    "state": "Listed"
+  }
 ]
 ```
 
@@ -164,14 +162,13 @@ The contract is structured into the following main components:
 - Sample Return Type:
 
 ```json
-
 [
-{
-"product_id": "12345",
-"amount": 600,
-"buyer_address": "buyer_address_here",
-"buyer_id": "buyer_456"
-},
+  {
+    "product_id": "12345",
+    "amount": 600,
+    "buyer_address": "buyer_address_here",
+    "buyer_id": "buyer_456"
+  }
 ]
 ```
 
@@ -183,21 +180,21 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"signature": {
-"Single": "0101010101010101010101010101010101010101010101010101010101010101"
-},
-"signer": "signer_address_here",
-"message": {
-"contract_address": "contract_address_here",
-"nonce": 1,
-"timestamp": 1234567890,
-"entry_point": "list_product",
-"payload": [0, 1, 2, 3]
-}
+  "signature": {
+    "Single": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "signer": "signer_address_here",
+  "message": {
+    "contract_address": "contract_address_here",
+    "nonce": 1,
+    "timestamp": 1234567890,
+    "entry_point": "list_product",
+    "payload": [0, 1, 2, 3]
+  }
 }
 ```
+
 ## Initialization
 
 ### `init`
@@ -216,9 +213,8 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"queries": ["account_address_1", "account_address_2"]
+  "queries": ["account_address_1", "account_address_2"]
 }
 ```
 
@@ -230,11 +226,11 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"queries": ["account_address_1", "account_address_2"]
+  "queries": ["account_address_1", "account_address_2"]
 }
 ```
+
 ### `viewMessageHash`
 
 - **Description:** Calculate the message hash for permit function.
@@ -243,14 +239,14 @@ The contract is structured into the following main components:
 - Sample Parameter:
 
 ```json
-
 {
-"signature": {
-"Single": "0101010101010101010101010101010101010101010101010101010101010101"
-},
-"signer": "signer_address_here"
+  "signature": {
+    "Single": "0101010101010101010101010101010101010101010101010101010101010101"
+  },
+  "signer": "signer_address_here"
 }
 ```
+
 ## Events
 
 - `NonceEvent`: Logged when the `permit` function is invoked, tracking the nonce used by the signer of the `PermitMessage`.
@@ -270,6 +266,69 @@ To use the Marketplace Smart Contract, follow the specified entrypoints for list
 Make sure to handle errors appropriately, and use the provided view functions to query the contract state.
 
 For transaction authorization, use the `permit` function with the required parameters.
+
+## GonaToken Smart Contract Documentation
+
+## Overview
+
+The GonaToken smart contract is designed to manage the token functionality within the Gonana Marketplace ecosystem. It provides essential features for token transfers, approvals, and balance management.
+
+## Endpoints
+
+### `Approve Function`
+
+- **Description:** Grants permission to another account or contract to spend tokens on behalf of the owner.
+- **Parameters:** `spender: Address of the account or contract to be granted spending approval.
+amount: Amount of tokens to approve for spending.
+token_id: TokenIdUnit`
+- Sample Parameter:
+
+```json
+{
+  "spender": "AccountAddress or ContractAddresss",
+  "amount": 100,
+  "token_id": TokenIdUnit,
+}
+```
+
+### `Transfer Function`
+
+- **Description:** Transfers tokens from the sender's account to the specified recipient.
+- **Parameters:** `to: Address of the recipient account.
+amount: Amount of tokens to transfer.
+token_id: TokenIdUnit`
+- Sample Parameter:
+
+```json
+{
+    "to": "AcccountAddress",
+    "amount": 50,
+    "token_id": TokenIdUnit,
+}
+
+```
+
+### `Transfer Function`
+
+- **Description:** Transfers tokens from the sender's account to the specified recipient.
+- **Parameters:** `to: Address of the recipient account.
+amount: Amount of tokens to transfer.
+token_id: TokenIdUnit`
+- Sample Parameter:
+
+```json
+{
+    "to": "AcccountAddress",
+    "amount": 50,
+    "token_id": TokenIdUnit,
+}
+```
+
+## Note
+
+    The GonanaToken smart contract operates within the Gonana Marketplace ecosystem, facilitating secure and transparent token transactions.
+    Users can approve spending, transfer tokens, check balances, and execute other token-related operations using the provided endpoints.
+    Detailed implementation and internal logic are abstracted in this documentation for simplicity. Users can refer to the contract source code for deeper insights into functionality and implementation details.
 
 ## License
 
