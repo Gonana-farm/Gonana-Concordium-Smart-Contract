@@ -7,6 +7,8 @@
     "./gona-token/Cargo.toml",
     "./Cargo.toml",
     "./gona-reflective/Cargo.toml",
+    "./gona-reflective/scripts/Cargo.toml",
+
 
   ],
   "rust-analyzer.showUnlinkedFileNotification": false

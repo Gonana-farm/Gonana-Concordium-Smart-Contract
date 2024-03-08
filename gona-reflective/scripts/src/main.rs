@@ -78,47 +78,47 @@ async fn main() -> Result<(), Error> {
 
 
 
-    // let mut modules_deployed: Vec<ModuleReference> = Vec::new();
+    let mut modules_deployed: Vec<ModuleReference> = Vec::new();
 
-    // for contract in app.module {
-    //     let wasm_module = get_wasm_module(contract.as_path())?;
+    for contract in app.module {
+        let wasm_module = get_wasm_module(contract.as_path())?;
 
-    //     let deploy_result = deployer
-    //         .deploy_wasm_module(wasm_module, None)
-    //         .await
-    //         .context("Failed to deploy a module.")?;
+        let deploy_result = deployer
+            .deploy_wasm_module(wasm_module, None)
+            .await
+            .context("Failed to deploy a module.")?;
 
-    //     match deploy_result {
-    //         DeployResult::ModuleDeployed(module_deploy_result) => {
-    //             modules_deployed.push(module_deploy_result.module_reference)
-    //         }
-    //         DeployResult::ModuleExists(module_reference) => modules_deployed.push(module_reference),
-    //     }
-    // }
+        match deploy_result {
+            DeployResult::ModuleDeployed(module_deploy_result) => {
+                modules_deployed.push(module_deploy_result.module_reference)
+            }
+            DeployResult::ModuleExists(module_reference) => modules_deployed.push(module_reference),
+        }
+    }
 
-    // // Write your own deployment/initialization script below. An example is given
-    // // here.
+    // Write your own deployment/initialization script below. An example is given
+    // here.
 
-    // let meta_data_param = SetMetadataUrlParams{
-    //     url: "https://ipfs.io/ipfs/QmdPuQadTWH4uCwUpJqoDTTazherdaEUWffiTmtg2fAPDP".into(),
-    //     hash: None
-    // };
+    let meta_data_param = SetMetadataUrlParams{
+        url: "https://ipfs.io/ipfs/QmdPuQadTWH4uCwUpJqoDTTazherdaEUWffiTmtg2fAPDP".into(),
+        hash: None
+    };
 
-    // let param = OwnedParameter::from_serial(&meta_data_param)?; // Example
+    let param = OwnedParameter::from_serial(&meta_data_param)?; // Example
 
-    // let init_method_name: &str = "init_gona_reflective"; // Example
+    let init_method_name: &str = "init_gona_reflective"; // Example
 
-    // let payload = InitContractPayload {
-    //     init_name: OwnedContractName::new(init_method_name.into())?,
-    //     amount: Amount::from_micro_ccd(0),
-    //     mod_ref: modules_deployed[0],
-    //     param,
-    // }; // Example
+    let payload = InitContractPayload {
+        init_name: OwnedContractName::new(init_method_name.into())?,
+        amount: Amount::from_micro_ccd(0),
+        mod_ref: modules_deployed[0],
+        param,
+    }; // Example
 
-    // let init_result: InitResult = deployer
-    //     .init_contract(payload, None, None)
-    //     .await
-    //     .context("Failed to initialize the contract.")?; // Example
+    let init_result: InitResult = deployer
+        .init_contract(payload, None, None)
+        .await
+        .context("Failed to initialize the contract.")?; // Example
 
 
 
