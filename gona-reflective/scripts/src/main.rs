@@ -99,9 +99,12 @@ async fn main() -> Result<(), Error> {
     // Write your own deployment/initialization script below. An example is given
     // here.
 
+    let hash = "ba3e65c355fccc13d3c405ab4c54f93c0e6c59b7f9bdbd5feef39fb31e633542";
+    let hash = contracts_common::hashes::Hash::from_str(hash).unwrap().bytes;
+
     let meta_data_param = SetMetadataUrlParams{
-        url: "https://ipfs.io/ipfs/QmdPuQadTWH4uCwUpJqoDTTazherdaEUWffiTmtg2fAPDP".into(),
-        hash: None
+        url: "https://ipfs.io/ipfs/QmZ7SfX3ozd1WVbEtGw74Nbjk95L2zS5CdByTCxQZhnrcP".into(),
+        hash: Some(hash)
     };
 
     let param = OwnedParameter::from_serial(&meta_data_param)?; // Example
@@ -151,14 +154,13 @@ async fn main() -> Result<(), Error> {
 
 
 
-    let bytes = contracts_common::to_bytes(&transfer_params); // Example
+    let bytes = contracts_common::to_bytes(&mint_param); // Example
 
     let update_payload = transactions::UpdateContractPayload {
         amount: Amount::from_ccd(0),
         //address: init_result.contract_address,
-        //address: ContractAddress::new(8225, 0),
-        address: ContractAddress::new(8238, 0),
-        receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
+        address: ContractAddress::new(8331, 0),
+        receive_name: OwnedReceiveName::new_unchecked("gona_reflective.mint".to_string()),
         message: bytes.try_into()?,
     }; // Example
 
