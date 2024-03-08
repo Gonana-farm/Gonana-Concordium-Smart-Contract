@@ -31,5 +31,6 @@ codegen-units = 1
 members = [
     "server",
     "deploy-scripts",
-    "gona-token"
+    "gona-token",
+    "gona-reflective"
 ]

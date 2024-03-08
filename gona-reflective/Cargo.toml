@@ -1,12 +1,12 @@
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "gate_token"
+name = "gona_reflective"
 version = "0.1.0"
 edition = "2021"
 license = "MPL-2.0"
 authors = [ "BukiOffor <ebuka2264@yahoo.com>" ]
-description = "The Gateway Token on the concordium blockchain"
+description = "The Gonana Token on the concordium blockchain"
 
 [features]
 default = ["std"]

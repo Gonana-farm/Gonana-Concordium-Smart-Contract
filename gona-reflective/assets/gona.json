@@ -1,0 +1,10 @@
+{
+    "name": "Gona Token",
+    "symbol": "GONA",
+    "decimals": 9,
+    "description": "A token for the Gonana network and Marketplace",
+    "thumbnail": { "url": "https://ipfs.io/ipfs/QmWMkbRJz3y5Yc7ET7FsNX125HpNZUFy49ULjJh6QjzJdN" },
+    "display": { "url": "https://ipfs.io/ipfs/QmWMkbRJz3y5Yc7ET7FsNX125HpNZUFy49ULjJh6QjzJdN" },
+    "artifact": { "url": "https://ipfs.io/ipfs/QmWMkbRJz3y5Yc7ET7FsNX125HpNZUFy49ULjJh6QjzJdN" }  
+  }
+  

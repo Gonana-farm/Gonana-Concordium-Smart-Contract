@@ -1,4 +1,4 @@
-//! Upgradable smart contract (Concordium's canonical Gate
+//! Upgradable smart contract (Concordium's canonical Gona
 //! implementation following the CIS-2 standard)
 //!
 //! # Description
@@ -29,8 +29,8 @@ use primitive_types::*;
 
 
 
-/// The id of the Gate token in this contract.
-pub const TOKEN_ID_GATE: ContractTokenId = TokenIdUnit();
+/// The id of the Gona token in this contract.
+pub const TOKEN_ID_Gona: ContractTokenId = TokenIdUnit();
 
 /// Tag for the NewAdmin event.
 pub const NEW_ADMIN_EVENT_TAG: u8 = 0;
@@ -181,7 +181,7 @@ pub struct WrapParams {
     /// executed. The `OnReceivingCis2` hook invokes the function entrypoint
     /// specified in the `Receiver` with these additional data bytes as
     /// part of the input parameters. This action allows the receiving smart
-    /// contract to react to the credited Gate amount.
+    /// contract to react to the credited Gona amount.
     pub data: AdditionalData,
 }
 
@@ -260,7 +260,7 @@ pub struct NewAdminEvent {
 /// Tagged events to be serialized for the event log.
 #[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
 #[concordium(repr(u8))]
-pub enum GateEvent {
+pub enum GonaEvent {
     NewAdmin {
         new_admin: NewAdminEvent,
     },
@@ -381,7 +381,7 @@ impl State {
         token_id: &ContractTokenId,
         address: &Address,
     ) -> ContractResult<ContractTokenAmount> {
-        ensure_eq!(token_id, &TOKEN_ID_GATE, ContractError::InvalidTokenId);
+        ensure_eq!(token_id, &TOKEN_ID_Gona, ContractError::InvalidTokenId);
         // we assume that nobody is in the is_excluded mapping at contract initiatlisation,
         // entering into the is_excluded_from_reward mapping means you opted to be excluded from rewards
         // which means that `is_excluded_from_tax.is_some()` will always be true while being false for those that didnt opt in.
@@ -420,7 +420,7 @@ impl State {
         to: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<U256> {
-        ensure_eq!(token_id, &TOKEN_ID_GATE, ContractError::InvalidTokenId);
+        ensure_eq!(token_id, &TOKEN_ID_Gona, ContractError::InvalidTokenId);
         
         // cannot transfer token to self
         ensure!(to != from, ContractError::Custom(CustomContractError::CannotSendToSelf));
@@ -797,7 +797,7 @@ impl State {
         });
     }
 
-    /// Mint an amount of Gate tokens.
+    /// Mint an amount of Gona tokens.
     /// Results in an error if the token id does not exist in the state.
     fn mint(
         &mut self,
@@ -806,7 +806,7 @@ impl State {
         owner: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
-        ensure_eq!(token_id, &TOKEN_ID_GATE, ContractError::InvalidTokenId);
+        ensure_eq!(token_id, &TOKEN_ID_Gona, ContractError::InvalidTokenId);
         ensure!(self.minted == false, ContractError::Unauthorized);
         self.minted = true;
         let mut owner_state = self.r_token.entry(*owner).or_insert_with(|| AddressState {
@@ -979,7 +979,7 @@ impl State {
 
 
 
-    /// Burn an amount of Gate tokens.
+    /// Burn an amount of Gona tokens.
     /// Results in an error if the token id does not exist in the state or if
     /// the owner address has insufficient tokens to do the burn.
     fn burn(
@@ -989,7 +989,7 @@ impl State {
         owner: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
-        ensure_eq!(token_id, &TOKEN_ID_GATE, ContractError::InvalidTokenId);
+        ensure_eq!(token_id, &TOKEN_ID_Gona, ContractError::InvalidTokenId);
         if amount == TokenAmountU256(U256::zero()) {
             return Ok(());
         }
@@ -1029,10 +1029,10 @@ impl State {
 /// Logs a `TokenMetadata` event with the metadata url and hash.
 /// Logs a `NewAdmin` event with the invoker as admin.
 #[init(
-    contract = "gate_token",
+    contract = "gona_reflective",
     enable_logger,
     parameter = "SetMetadataUrlParams",
-    event = "GateEvent"
+    event = "GonaEvent"
 )]
 fn contract_init(
     ctx: &InitContext,
@@ -1054,22 +1054,22 @@ fn contract_init(
     // Construct the initial contract state.
     let state = State::new(state_builder, invoker, metadata_url.clone());
     // Log event for the newly minted token.
-    logger.log(&GateEvent::Cis2Event(Cis2Event::Mint(MintEvent {
-        token_id: TOKEN_ID_GATE,
+    logger.log(&GonaEvent::Cis2Event(Cis2Event::Mint(MintEvent {
+        token_id: TOKEN_ID_Gona,
         amount:   ContractTokenAmount::from(TokenAmountU256(U256::zero())),
         owner:    invoker,
     })))?;
 
     // Log event for where to find metadata for the token
-    logger.log(&GateEvent::Cis2Event(Cis2Event::TokenMetadata::<_, ContractTokenAmount>(
+    logger.log(&GonaEvent::Cis2Event(Cis2Event::TokenMetadata::<_, ContractTokenAmount>(
         TokenMetadataEvent {
-            token_id: TOKEN_ID_GATE,
+            token_id: TOKEN_ID_Gona,
             metadata_url,
         },
     )))?;
 
     // Log event for the new admin.
-    logger.log(&GateEvent::NewAdmin {
+    logger.log(&GonaEvent::NewAdmin {
         new_admin: NewAdminEvent {
             new_admin: invoker,
         },
@@ -1085,7 +1085,7 @@ fn contract_init(
 /// - Sender is not the current admin of the contract instance.
 /// - It fails to parse the parameter.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "updateAdmin",
     parameter = "Address",
     error = "ContractError",
@@ -1107,7 +1107,7 @@ fn contract_update_admin(
     host.state_mut().admin = new_admin;
 
     // Log a new admin event.
-    logger.log(&GateEvent::NewAdmin {
+    logger.log(&GonaEvent::NewAdmin {
         new_admin: NewAdminEvent {
             new_admin,
         },
@@ -1124,7 +1124,7 @@ fn contract_update_admin(
 /// - Sender is not the admin of the contract instance.
 /// - It fails to parse the parameter.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "setPaused",
     parameter = "SetPausedParams",
     error = "ContractError",
@@ -1149,7 +1149,7 @@ fn contract_set_paused(ctx: &ReceiveContext, host: &mut Host<State>) -> Contract
 /// - Sender is not the admin of the contract instance.
 /// - It fails to parse the parameter.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "setMetadataUrl",
     parameter = "SetMetadataUrlParams",
     error = "ContractError",
@@ -1177,9 +1177,9 @@ fn contract_state_set_metadata_url(
     *host.state_mut().metadata_url = metadata_url.clone();
 
     // Log an event including the new metadata for this token.
-    logger.log(&GateEvent::Cis2Event(Cis2Event::TokenMetadata::<_, ContractTokenAmount>(
+    logger.log(&GonaEvent::Cis2Event(Cis2Event::TokenMetadata::<_, ContractTokenAmount>(
         TokenMetadataEvent {
-            token_id: TOKEN_ID_GATE,
+            token_id: TOKEN_ID_Gona,
             metadata_url,
         },
     )))?;
@@ -1206,7 +1206,7 @@ type TransferParameter = TransferParams<ContractTokenId, ContractTokenAmount>;
 /// - Fails to log event.
 /// - Any of the receive hook function calls rejects.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "transfer",
     parameter = "TransferParameter",
     error = "ContractError",
@@ -1244,7 +1244,7 @@ fn contract_transfer(
         let amount = TokenAmountU256::from(transfer_amount);
 
         // Log transfer event
-        logger.log(&GateEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
+        logger.log(&GonaEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
             token_id,
             amount,
             from,
@@ -1274,7 +1274,7 @@ fn contract_transfer(
 
 
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "burn",
     parameter = "Address",
     error = "ContractError",
@@ -1296,7 +1296,7 @@ fn contract_burn(
 
         // Log the appropriate event
          // Log transfer event
-         logger.log(&GateEvent::Cis2Event(Cis2Event::Burn(BurnEvent{
+         logger.log(&GonaEvent::Cis2Event(Cis2Event::Burn(BurnEvent{
             token_id: params.token_id,
             amount: params.amount,
             owner: ctx.sender(),
@@ -1314,7 +1314,7 @@ fn contract_burn(
 /// - It fails to parse the parameter.
 /// - Fails to log event.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "updateOperator",
     parameter = "UpdateOperatorParams",
     error = "ContractError",
@@ -1342,7 +1342,7 @@ fn contract_update_operator(
         }
 
         // Log the appropriate event
-        logger.log(&GateEvent::Cis2Event(
+        logger.log(&GonaEvent::Cis2Event(
             Cis2Event::<ContractTokenId, ContractTokenAmount>::UpdateOperator(
                 UpdateOperatorEvent {
                     owner:    sender,
@@ -1368,7 +1368,7 @@ pub type ContractBalanceOfQueryResponse = BalanceOfQueryResponse<ContractTokenAm
 /// - It fails to parse the parameter.
 /// - Any of the queried `token_id` does not exist.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "balanceOf",
     parameter = "ContractBalanceOfQueryParams",
     return_value = "ContractBalanceOfQueryResponse",
@@ -1395,7 +1395,7 @@ fn contract_balance_of(
 
 
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "mint",
     parameter = "MintParams",
     error = "ContractError",
@@ -1430,11 +1430,11 @@ fn contract_mint(
     let amount = state.total_reflective_tokens;
 
     // Update the state.
-    state.mint(&TOKEN_ID_GATE, amount, &mint_to, state_builder)?;
+    state.mint(&TOKEN_ID_Gona, amount, &mint_to, state_builder)?;
 
     // Log the newly minted tokens.
-    logger.log(&GateEvent::Cis2Event(Cis2Event::Mint(MintEvent {
-        token_id: TOKEN_ID_GATE,
+    logger.log(&GonaEvent::Cis2Event(Cis2Event::Mint(MintEvent {
+        token_id: TOKEN_ID_Gona,
         amount:   ContractTokenAmount::from(amount),
         owner:    sender,
     })))?;
@@ -1444,15 +1444,15 @@ fn contract_mint(
     // Only executes the `OnReceivingCis2` hook if the receiver is not the sender
     // and the receiver is a contract.
     // if sender != receive_address {
-    //     logger.log(&GateEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
-    //         token_id: TOKEN_ID_GATE,
+    //     logger.log(&GonaEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
+    //         token_id: TOKEN_ID_Gona,
     //         amount:   ContractTokenAmount::from(amount),
     //         from:     sender,
     //         to:       receive_address,
     //     })))?;
     // }
-    logger.log(&GateEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
-        token_id: TOKEN_ID_GATE,
+    logger.log(&GonaEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
+        token_id: TOKEN_ID_Gona,
         amount:   ContractTokenAmount::from(amount),
         from:     Address::Account(AccountAddress([0; 32])),
         to:       mint_to,
@@ -1472,7 +1472,7 @@ fn contract_mint(
 /// It rejects if:
 /// - It fails to parse the parameter.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "operatorOf",
     parameter = "OperatorOfQueryParams",
     return_value = "OperatorOfQueryResponse",
@@ -1507,7 +1507,7 @@ pub type ContractTokenMetadataQueryParams = TokenMetadataQueryParams<ContractTok
 /// - It fails to parse the parameter.
 /// - Any of the queried `token_id` does not exist.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "tokenMetadata",
     parameter = "ContractTokenMetadataQueryParams",
     return_value = "TokenMetadataQueryResponse",
@@ -1524,7 +1524,7 @@ fn contract_token_metadata(
     let mut response = Vec::with_capacity(params.queries.len());
     for token_id in params.queries {
         // Check the token exists.
-        ensure_eq!(token_id, TOKEN_ID_GATE, ContractError::InvalidTokenId);
+        ensure_eq!(token_id, TOKEN_ID_Gona, ContractError::InvalidTokenId);
 
         response.push(host.state().metadata_url.clone());
     }
@@ -1534,7 +1534,7 @@ fn contract_token_metadata(
 
 /// Function to view the basic state of the contract.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "view",
     return_value = "ReturnBasicState",
     error = "ContractError"
@@ -1554,7 +1554,7 @@ fn contract_view(_ctx: &ReceiveContext, host: &Host<State>) -> ContractResult<Re
 /// It rejects if:
 /// - It fails to parse the parameter.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "supports",
     parameter = "SupportsQueryParams",
     return_value = "SupportsQueryResponse",
@@ -1587,7 +1587,7 @@ fn contract_supports(
 /// - Sender is not the admin of the contract instance.
 /// - It fails to parse the parameter.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "setImplementors",
     parameter = "SetImplementorsParams",
     error = "ContractError",
@@ -1619,7 +1619,7 @@ fn contract_set_implementor(ctx: &ReceiveContext, host: &mut Host<State>) -> Con
 /// by this function it would overwrite the state stored by the migration
 /// function.
 #[receive(
-    contract = "gate_token",
+    contract = "gona_reflective",
     name = "upgrade",
     parameter = "UpgradeParams",
     error = "ContractError",

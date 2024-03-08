@@ -1,5 +1,5 @@
-//! Tests for the `gate_token` contract.
-use gate_token::*;
+//! Tests for the `gona_reflective` contract.
+use gona_reflective::*;
 use concordium_cis2::*;
 use concordium_smart_contract_testing::*;
 use primitive_types::*;
@@ -29,23 +29,23 @@ fn test_init() {
     let events = init
         .events
         .iter()
-        .map(|e| e.parse().expect("Parsing GateEvent."))
-        .collect::<Vec<GateEvent>>();
+        .map(|e| e.parse().expect("Parsing GonaEvent."))
+        .collect::<Vec<GonaEvent>>();
 
     assert_eq!(events, [
-        GateEvent::Cis2Event(Cis2Event::Mint(MintEvent {
-            token_id: TOKEN_ID_GATE,
+        GonaEvent::Cis2Event(Cis2Event::Mint(MintEvent {
+            token_id: TOKEN_ID_Gona,
             amount:   ContractTokenAmount::from(U256::zero()),
             owner:    ALICE_ADDR,
         })),
-        GateEvent::Cis2Event(Cis2Event::TokenMetadata(TokenMetadataEvent {
-            token_id:     TOKEN_ID_GATE,
+        GonaEvent::Cis2Event(Cis2Event::TokenMetadata(TokenMetadataEvent {
+            token_id:     TOKEN_ID_Gona,
             metadata_url: MetadataUrl {
                 url:  METADATA_URL.to_string(),
                 hash: None,
             },
         })),
-        GateEvent::NewAdmin {
+        GonaEvent::NewAdmin {
             new_admin: NewAdminEvent {
                 new_admin: ALICE_ADDR,
             },
@@ -70,7 +70,7 @@ fn test_set_metadata_url() {
     let update = chain
         .contract_update(SIGNER, BOB, BOB_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.setMetadataUrl".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.setMetadataUrl".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&params).expect("SetMetadataUrl params"),
         })
@@ -84,7 +84,7 @@ fn test_set_metadata_url() {
     let update = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.setMetadataUrl".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.setMetadataUrl".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&params).expect("SetMetadataUrl params"),
         })
@@ -93,8 +93,8 @@ fn test_set_metadata_url() {
     // Check that the logs are correct.
     let events = deserialize_update_events(&update);
 
-    assert_eq!(events, [GateEvent::Cis2Event(Cis2Event::TokenMetadata(TokenMetadataEvent {
-        token_id:     TOKEN_ID_GATE,
+    assert_eq!(events, [GonaEvent::Cis2Event(Cis2Event::TokenMetadata(TokenMetadataEvent {
+        token_id:     TOKEN_ID_Gona,
         metadata_url: MetadataUrl {
             url:  new_metadata_url,
             hash: None,
@@ -111,7 +111,7 @@ fn test_account_transfer() {
     let transfer_params = TransferParams::from(vec![concordium_cis2::Transfer {
         from:     ALICE_ADDR,
         to:       Receiver::Account(BOB),
-        token_id: TOKEN_ID_GATE,
+        token_id: TOKEN_ID_Gona,
         amount:   TokenAmountU256(U256::from(10000000000000000_u64)),
         data:     AdditionalData::empty(),
     }]);
@@ -119,7 +119,7 @@ fn test_account_transfer() {
     let update = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.transfer".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&transfer_params).expect("Transfer params"),
         })
@@ -131,8 +131,8 @@ fn test_account_transfer() {
 
     // Check that a single transfer event occurred.
     let events = deserialize_update_events(&update);
-    assert_eq!(events, [GateEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
-        token_id: TOKEN_ID_GATE,
+    assert_eq!(events, [GonaEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
+        token_id: TOKEN_ID_Gona,
         amount:   TokenAmountU256(U256::from(1)),
         from:     ALICE_ADDR,
         to:       BOB_ADDR,
@@ -168,7 +168,7 @@ fn test_add_operator() {
     let update = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.updateOperator".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.updateOperator".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&params).expect("UpdateOperator params"),
         })
@@ -176,7 +176,7 @@ fn test_add_operator() {
 
     // Check that an operator event occurred.
     let events = deserialize_update_events(&update);
-    assert_eq!(events, [GateEvent::Cis2Event(Cis2Event::UpdateOperator(UpdateOperatorEvent {
+    assert_eq!(events, [GonaEvent::Cis2Event(Cis2Event::UpdateOperator(UpdateOperatorEvent {
         operator: BOB_ADDR,
         owner:    ALICE_ADDR,
         update:   OperatorUpdate::Add,
@@ -195,7 +195,7 @@ fn test_add_operator() {
     let invoke = chain
         .contract_invoke(ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.operatorOf".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.operatorOf".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&query_params).expect("OperatorOf params"),
         })
@@ -212,12 +212,12 @@ fn test_add_operator() {
 fn test_unauthorized_sender() {
     let (mut chain, contract_address, _update) = initialize_contract_with_alice_tokens();
 
-    // Construct a transfer of `TOKEN_ID_GATE` from Alice to Bob, which will be
+    // Construct a transfer of `TOKEN_ID_Gona` from Alice to Bob, which will be
     // submitted by Bob.
     let transfer_params = TransferParams::from(vec![concordium_cis2::Transfer {
         from:     ALICE_ADDR,
         to:       Receiver::Account(BOB),
-        token_id: TOKEN_ID_GATE,
+        token_id: TOKEN_ID_Gona,
         amount:   TokenAmountU64(1),
         data:     AdditionalData::empty(),
     }]);
@@ -226,7 +226,7 @@ fn test_unauthorized_sender() {
     let update = chain
         .contract_update(SIGNER, BOB, BOB_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.transfer".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&transfer_params).expect("Transfer params"),
         })
@@ -250,7 +250,7 @@ fn test_operator_can_transfer() {
     chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.updateOperator".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.updateOperator".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&params).expect("UpdateOperator params"),
         })
@@ -260,7 +260,7 @@ fn test_operator_can_transfer() {
     let transfer_params = TransferParams::from(vec![concordium_cis2::Transfer {
         from:     ALICE_ADDR,
         to:       Receiver::Account(BOB),
-        token_id: TOKEN_ID_GATE,
+        token_id: TOKEN_ID_Gona,
         amount:   TokenAmountU256(U256::from(1000000)),
         data:     AdditionalData::empty(),
     }]);
@@ -268,7 +268,7 @@ fn test_operator_can_transfer() {
     chain
         .contract_update(SIGNER, BOB, BOB_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.transfer".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&transfer_params).expect("Transfer params"),
         })
@@ -291,7 +291,7 @@ fn test_update_admin() {
     let update = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.updateAdmin".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.updateAdmin".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&params).expect("UpdateAdmin params"),
         })
@@ -302,7 +302,7 @@ fn test_update_admin() {
 
     // Check that the logs are correct.
     let events = deserialize_update_events(&update);
-    assert_eq!(events, [GateEvent::NewAdmin {
+    assert_eq!(events, [GonaEvent::NewAdmin {
         new_admin: NewAdminEvent {
             new_admin: BOB_ADDR,
         },
@@ -325,7 +325,7 @@ fn test_update_admin_unauthorized() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount:       Amount::zero(),
-                receive_name: OwnedReceiveName::new_unchecked("gate_token.updateAdmin".to_string()),
+                receive_name: OwnedReceiveName::new_unchecked("gona_reflective.updateAdmin".to_string()),
                 address:      contract_address,
                 message:      OwnedParameter::from_serial(&params).expect("UpdateAdmin params"),
             },
@@ -347,7 +347,7 @@ fn test_pause_functionality() {
     chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.setPaused".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.setPaused".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&true).expect("Pause params"),
         })
@@ -360,7 +360,7 @@ fn test_pause_functionality() {
     chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.setPaused".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.setPaused".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&false).expect("Unpause params"),
         })
@@ -378,7 +378,7 @@ fn test_pause_unpause_unauthorized() {
     let update = chain
         .contract_update(SIGNER, BOB, BOB_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.setPaused".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.setPaused".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&true).expect("Pause params"),
         })
@@ -399,7 +399,7 @@ fn test_no_execution_of_state_mutative_functions_when_paused() {
     chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.setPaused".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.setPaused".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&true).expect("Pause params"),
         })
@@ -412,7 +412,7 @@ fn test_no_execution_of_state_mutative_functions_when_paused() {
     let update_wrap = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.mint".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.mint".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&mint_params).expect("Wrap params"),
         })
@@ -431,7 +431,7 @@ fn test_no_execution_of_state_mutative_functions_when_paused() {
     // let update_unwrap = chain
     //     .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
     //         amount:       Amount::zero(),
-    //         receive_name: OwnedReceiveName::new_unchecked("gate_token.unwrap".to_string()),
+    //         receive_name: OwnedReceiveName::new_unchecked("gona_reflective.unwrap".to_string()),
     //         address:      contract_address,
     //         message:      OwnedParameter::from_serial(&unmint_params).expect("Unwrap params"),
     //     })
@@ -442,14 +442,14 @@ fn test_no_execution_of_state_mutative_functions_when_paused() {
     let transfer_params = TransferParams::from(vec![concordium_cis2::Transfer {
         from:     ALICE_ADDR,
         to:       Receiver::Account(BOB),
-        token_id: TOKEN_ID_GATE,
+        token_id: TOKEN_ID_Gona,
         amount:   TokenAmountU64(1),
         data:     AdditionalData::empty(),
     }]);
     let update_transfer = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.transfer".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&transfer_params).expect("Transfer params"),
         })
@@ -464,7 +464,7 @@ fn test_no_execution_of_state_mutative_functions_when_paused() {
     let update_operator = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.updateOperator".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.updateOperator".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&params).expect("UpdateOperator params"),
         })
@@ -487,11 +487,11 @@ fn initialize_contract_with_alice_tokens() -> (Chain, ContractAddress, ContractI
     let update = chain
         .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.mint".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.mint".to_string()),
             address:      init.contract_address,
             message:      OwnedParameter::from_serial(&mint_params).expect("mint params"),
         })
-        .expect("MINT GATE");
+        .expect("MINT Gona");
     (chain, init.contract_address, update)
 }
 
@@ -522,7 +522,7 @@ fn initialize_chain_and_contract() -> (Chain, ContractInitSuccess) {
         .contract_init(SIGNER, ALICE, Energy::from(10000), InitContractPayload {
             amount:    Amount::zero(),
             mod_ref:   deployment.module_reference,
-            init_name: OwnedContractName::new_unchecked("init_gate_token".to_string()),
+            init_name: OwnedContractName::new_unchecked("init_gona_reflective".to_string()),
             param:     OwnedParameter::from_serial(&params).expect("Init params"),
         })
         .expect("Initialize contract");
@@ -535,7 +535,7 @@ fn invoke_view(chain: &mut Chain, contract_address: ContractAddress) -> ReturnBa
     let invoke = chain
         .contract_invoke(ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.view".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.view".to_string()),
             address:      contract_address,
             message:      OwnedParameter::empty(),
         })
@@ -551,11 +551,11 @@ fn get_balances(
     let balance_of_params = ContractBalanceOfQueryParams {
         queries: vec![
             BalanceOfQuery {
-                token_id: TOKEN_ID_GATE,
+                token_id: TOKEN_ID_Gona,
                 address:  ALICE_ADDR,
             },
             BalanceOfQuery {
-                token_id: TOKEN_ID_GATE,
+                token_id: TOKEN_ID_Gona,
                 address:  BOB_ADDR,
             },
         ],
@@ -563,7 +563,7 @@ fn get_balances(
     let invoke = chain
         .contract_invoke(ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
             amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gate_token.balanceOf".to_string()),
+            receive_name: OwnedReceiveName::new_unchecked("gona_reflective.balanceOf".to_string()),
             address:      contract_address,
             message:      OwnedParameter::from_serial(&balance_of_params)
                 .expect("BalanceOf params"),
@@ -575,7 +575,7 @@ fn get_balances(
 }
 
 /// Deserialize the events from an update.
-fn deserialize_update_events(update: &ContractInvokeSuccess) -> Vec<GateEvent> {
+fn deserialize_update_events(update: &ContractInvokeSuccess) -> Vec<GonaEvent> {
     update
         .events()
         .flat_map(|(_addr, events)| events.iter().map(|e| e.parse().expect("Deserialize event")))

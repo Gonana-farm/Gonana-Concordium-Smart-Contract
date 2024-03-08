@@ -14,7 +14,6 @@ use concordium_rust_sdk::{
 };
 use deployer::{DeployResult, Deployer, InitResult};
 use primitive_types::U256;
-//use primitive_types::U256;
 use std::{
     io::Cursor,
     path::{Path, PathBuf}, str::FromStr,
@@ -107,7 +106,7 @@ async fn main() -> Result<(), Error> {
 
     // let param = OwnedParameter::from_serial(&meta_data_param)?; // Example
 
-    // let init_method_name: &str = "init_gate_token"; // Example
+    // let init_method_name: &str = "init_gona_reflective"; // Example
 
     // let payload = InitContractPayload {
     //     init_name: OwnedContractName::new(init_method_name.into())?,
@@ -133,7 +132,7 @@ async fn main() -> Result<(), Error> {
 
 
     // This is how you can use a type from your smart contract.
-    use gate_token::*; // Example
+    use gona_reflective::*; // Example
 
     let mint_param: MintParams = MintParams {
         to : contracts_common::Address::Account(deployer.key.address),
@@ -145,7 +144,7 @@ async fn main() -> Result<(), Error> {
     let transfer_params = concordium_cis2::TransferParams::from(vec![concordium_cis2::Transfer {
         from:     contracts_common::Address::Account(deployer.key.address),
         to:       Receiver::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA").unwrap()),
-        token_id: TOKEN_ID_GATE,
+        token_id: TOKEN_ID_Gona,
         amount:   TokenAmountU256(U256::from(9090900000_u64)),
         data:     AdditionalData::empty(),
     }]);
@@ -159,7 +158,7 @@ async fn main() -> Result<(), Error> {
         //address: init_result.contract_address,
         //address: ContractAddress::new(8225, 0),
         address: ContractAddress::new(8238, 0),
-        receive_name: OwnedReceiveName::new_unchecked("gate_token.transfer".to_string()),
+        receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
         message: bytes.try_into()?,
     }; // Example
 
@@ -191,7 +190,7 @@ async fn main() -> Result<(), Error> {
 
 
 
-//  cargo run -- --node http://node.testnet.concordium.com:20000 --account ~/36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA.export --module ~/Gateway-Concordium-Contracts/gate-token/dist/module.wasm.v1
+//  cargo run -- --node http://node.testnet.concordium.com:20000 --account ~/36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA.export --module ~/Gonaway-Concordium-Contracts/Gona-token/dist/module.wasm.v1
 
 
 

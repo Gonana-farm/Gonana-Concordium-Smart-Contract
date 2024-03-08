@@ -308,6 +308,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.16"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0942ffc6dcaadf03badf6e6a2d0228460359d5e34b57ccdc720b7382dfbd5ec5"
+
+[[package]]
 name = "android-tzdata"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -375,6 +381,124 @@ name = "anyhow"
 version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
+
+[[package]]
+name = "ark-bls12-381"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c775f0d12169cba7aae4caeb547bb6a50781c7449a8aa53793827c9ec4abf488"
+dependencies = [
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+]
+
+[[package]]
+name = "ark-ec"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "defd9a439d56ac24968cca0571f598a61bc8c55f71d50a89cda591cb750670ba"
+dependencies = [
+ "ark-ff",
+ "ark-poly",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "hashbrown 0.13.2",
+ "itertools",
+ "num-traits",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ff"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ec847af850f44ad29048935519032c33da8aa03340876d351dfab5660d2966ba"
+dependencies = [
+ "ark-ff-asm",
+ "ark-ff-macros",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "digest 0.10.7",
+ "itertools",
+ "num-bigint 0.4.4",
+ "num-traits",
+ "paste",
+ "rustc_version",
+ "zeroize",
+]
+
+[[package]]
+name = "ark-ff-asm"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3ed4aa4fe255d0bc6d79373f7e31d2ea147bcf486cba1be5ba7ea85abdb92348"
+dependencies = [
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-ff-macros"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7abe79b0e4288889c4574159ab790824d0033b9fdcb2a112a3182fac2e514565"
+dependencies = [
+ "num-bigint 0.4.4",
+ "num-traits",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-poly"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d320bfc44ee185d899ccbadfa8bc31aab923ce1558716e1997a1e74057fe86bf"
+dependencies = [
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "derivative",
+ "hashbrown 0.13.2",
+]
+
+[[package]]
+name = "ark-serialize"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "adb7b85a02b83d2f22f89bd5cac66c9c89474240cb6207cb1efc16d098e822a5"
+dependencies = [
+ "ark-serialize-derive",
+ "ark-std",
+ "digest 0.10.7",
+ "num-bigint 0.4.4",
+]
+
+[[package]]
+name = "ark-serialize-derive"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae3281bc6d0fd7e549af32b52511e1302185bd688fd3359fa36423346ff682ea"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
+name = "ark-std"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94893f1e0c6eeab764ade8dc4c0db24caf4fe7cbbaafc0eba0a9030f447b5185"
+dependencies = [
+ "num-traits",
+ "rand 0.8.5",
+]
 
 [[package]]
 name = "arrayvec"
@@ -605,6 +729,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "bs58"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5353f36341f7451062466f0b755b96ac3a9547e4d7f6b70d603fc721a7d7896"
+dependencies = [
+ "sha2 0.10.8",
+ "tinyvec",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -767,7 +901,17 @@ version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c6c556365e2e5bf2c2669e944a4f235e0039c06bdbd43539e1828de4fa45d8c0"
 dependencies = [
- "concordium-std",
+ "concordium-std 8.1.0",
+ "primitive-types",
+]
+
+[[package]]
+name = "concordium-cis2"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f920220277e58c8a097a3f43426196ccd6c6f57ac6780b572e73f0dcffc16379"
+dependencies = [
+ "concordium-std 10.0.0",
  "primitive-types",
 ]
 
@@ -778,7 +922,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1943bb4b1738f7f974ee86fb99fde2ce923e22f478f098f057c7bcd92c424e45"
 dependencies = [
  "base64 0.21.5",
- "bs58",
+ "bs58 0.4.0",
+ "chrono",
+ "concordium-contracts-common-derive",
+ "fnv",
+ "hashbrown 0.11.2",
+ "hex",
+ "num-bigint 0.4.4",
+ "num-integer",
+ "num-traits",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
+name = "concordium-contracts-common"
+version = "9.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "27f49ffe8ff944ec174f597b3f0d1f84e77e6dd3e8eb2fad3bdd08c8d1dcf7c9"
+dependencies = [
+ "base64 0.21.5",
+ "bs58 0.5.0",
  "chrono",
  "concordium-contracts-common-derive",
  "fnv",
@@ -813,17 +979,17 @@ dependencies = [
  "aes-gcm",
  "anyhow",
  "chrono",
- "concordium-smart-contract-engine",
- "concordium_base",
+ "concordium-smart-contract-engine 3.1.0",
+ "concordium_base 3.2.0",
  "derive_more",
- "ed25519-dalek",
+ "ed25519-dalek 1.0.1",
  "futures",
  "hex",
  "http",
  "num",
  "num-bigint 0.4.4",
  "num-traits",
- "prost",
+ "prost 0.11.9",
  "rand 0.7.3",
  "rust_decimal",
  "semver",
@@ -833,7 +999,40 @@ dependencies = [
  "thiserror",
  "tokio",
  "tokio-stream",
- "tonic",
+ "tonic 0.8.3",
+]
+
+[[package]]
+name = "concordium-rust-sdk"
+version = "4.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "104d243a251ee51d2b8f104050fe3a3582dc476ea5e3faa3952bd7d680ef5803"
+dependencies = [
+ "aes-gcm",
+ "anyhow",
+ "chrono",
+ "concordium-smart-contract-engine 4.0.0",
+ "concordium_base 4.0.0",
+ "derive_more",
+ "ed25519-dalek 2.1.1",
+ "futures",
+ "hex",
+ "http",
+ "num",
+ "num-bigint 0.4.4",
+ "num-traits",
+ "prost 0.12.3",
+ "rand 0.8.5",
+ "rust_decimal",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.10.8",
+ "thiserror",
+ "tokio",
+ "tokio-stream",
+ "tonic 0.10.2",
+ "tracing",
 ]
 
 [[package]]
@@ -844,10 +1043,35 @@ checksum = "6fc1650c044214b7da9914cceaedabdec884c4b9feaad5b47323292d7ba2e1fb"
 dependencies = [
  "anyhow",
  "byteorder",
- "concordium-contracts-common",
- "concordium-wasm",
+ "concordium-contracts-common 8.1.1",
+ "concordium-wasm 3.0.0",
  "derive_more",
- "ed25519-zebra",
+ "ed25519-zebra 3.1.0",
+ "futures",
+ "libc",
+ "num_enum",
+ "rand 0.8.5",
+ "secp256k1",
+ "serde",
+ "sha2 0.10.8",
+ "sha3",
+ "slab",
+ "thiserror",
+ "tinyvec",
+]
+
+[[package]]
+name = "concordium-smart-contract-engine"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23751642d6672291e4feac02252f5f1d258cd3c093873a7f59f3d9a7cc165f82"
+dependencies = [
+ "anyhow",
+ "byteorder",
+ "concordium-contracts-common 9.0.0",
+ "concordium-wasm 4.0.0",
+ "derive_more",
+ "ed25519-zebra 4.0.3",
  "futures",
  "libc",
  "num_enum",
@@ -868,10 +1092,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8590e23b40951c691afb352ec9231f06c33437586e8547d3d044584c85518815"
 dependencies = [
  "anyhow",
- "concordium-rust-sdk",
- "concordium-smart-contract-engine",
- "concordium-wasm",
- "concordium_base",
+ "concordium-rust-sdk 3.2.0",
+ "concordium-smart-contract-engine 3.1.0",
+ "concordium-wasm 3.0.0",
+ "concordium_base 3.2.0",
+ "num-bigint 0.4.4",
+ "num-integer",
+ "sha2 0.10.8",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "concordium-smart-contract-testing"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "947f4357eb3da00b4de20e845e36e91e51914f4a624aaacba111504f08f6146a"
+dependencies = [
+ "anyhow",
+ "concordium-rust-sdk 4.2.0",
  "num-bigint 0.4.4",
  "num-integer",
  "sha2 0.10.8",
@@ -885,8 +1124,17 @@ version = "8.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "194f22e2a418e367e584fb3e26238298578ccc944fd2355d53a4473eb4b47a51"
 dependencies = [
- "concordium-contracts-common",
+ "concordium-contracts-common 8.1.1",
  "wee_alloc",
+]
+
+[[package]]
+name = "concordium-std"
+version = "10.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "645eeaa2c81e2daa6289ef1cfcca8170419feecdb7d93d5421113880553361df"
+dependencies = [
+ "concordium-contracts-common 9.0.0",
 ]
 
 [[package]]
@@ -896,7 +1144,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c3147903254a3c4862db6207bd8f1f43dcbec6c457cc0053940c42b452cc442"
 dependencies = [
  "anyhow",
- "concordium-contracts-common",
+ "concordium-contracts-common 8.1.1",
+ "derive_more",
+ "leb128",
+ "num_enum",
+]
+
+[[package]]
+name = "concordium-wasm"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26a581ef6ae1b23e149eaf5ed1e43c1da877ded9ae0de4989cd71b76d25c67d7"
+dependencies = [
+ "anyhow",
+ "concordium-contracts-common 9.0.0",
  "derive_more",
  "leb128",
  "num_enum",
@@ -911,18 +1172,18 @@ dependencies = [
  "aes",
  "anyhow",
  "base64 0.21.5",
- "bs58",
+ "bs58 0.4.0",
  "byteorder",
  "cbc",
  "chrono",
- "concordium-contracts-common",
+ "concordium-contracts-common 8.1.1",
  "concordium_base_derive",
- "curve25519-dalek",
+ "curve25519-dalek 3.2.0",
  "derive_more",
- "ed25519-dalek",
+ "ed25519-dalek 1.0.1",
  "either",
- "ff",
- "group",
+ "ff 0.5.2",
+ "group 0.2.0",
  "hex",
  "hmac",
  "itertools",
@@ -949,6 +1210,54 @@ dependencies = [
 ]
 
 [[package]]
+name = "concordium_base"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "00b92eba25481b3cec616943c433d780d1ca6db02cf2bc9be8d8d192d54dedb8"
+dependencies = [
+ "aes",
+ "anyhow",
+ "ark-bls12-381",
+ "ark-ec",
+ "ark-ff",
+ "ark-serialize",
+ "ark-std",
+ "base64 0.21.5",
+ "bs58 0.5.0",
+ "byteorder",
+ "cbc",
+ "chrono",
+ "concordium-contracts-common 9.0.0",
+ "concordium_base_derive",
+ "curve25519-dalek 4.1.2",
+ "derive_more",
+ "ed25519-dalek 2.1.1",
+ "either",
+ "ff 0.13.0",
+ "hex",
+ "hmac",
+ "itertools",
+ "leb128",
+ "libc",
+ "nom",
+ "num",
+ "num-bigint 0.4.4",
+ "num-traits",
+ "pbkdf2",
+ "rand 0.8.5",
+ "rayon",
+ "rust_decimal",
+ "serde",
+ "serde_json",
+ "serde_with",
+ "sha2 0.10.8",
+ "sha3",
+ "subtle",
+ "thiserror",
+ "zeroize",
+]
+
+[[package]]
 name = "concordium_base_derive"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -958,6 +1267,12 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "const-oid"
+version = "0.9.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2459377285ad874054d797f3ccebf984978aa39129f6eafde5cdc8315b612f8"
 
 [[package]]
 name = "convert_case"
@@ -1061,15 +1376,45 @@ dependencies = [
 
 [[package]]
 name = "curve25519-dalek"
-version = "3.2.1"
+version = "3.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "90f9d052967f590a76e62eb387bd0bbb1b000182c3cefe5364db6b7211651bc0"
+checksum = "0b9fdf9972b2bd6af2d913799d9ebc165ea4d2e65878e329d9c6b372c4491b61"
 dependencies = [
  "byteorder",
  "digest 0.9.0",
  "rand_core 0.5.1",
  "subtle",
  "zeroize",
+]
+
+[[package]]
+name = "curve25519-dalek"
+version = "4.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a677b8922c94e01bdbb12126b0bc852f00447528dee1782229af9c720c3f348"
+dependencies = [
+ "cfg-if 1.0.0",
+ "cpufeatures",
+ "curve25519-dalek-derive",
+ "digest 0.10.7",
+ "fiat-crypto",
+ "group 0.13.0",
+ "platforms",
+ "rand_core 0.6.4",
+ "rustc_version",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
+name = "curve25519-dalek-derive"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f46882e17999c6cc590af592290432be3bce0428cb0d5f8b6715e4dc7b383eb3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -1114,14 +1459,24 @@ dependencies = [
  "anyhow",
  "chrono",
  "clap",
- "concordium-cis2",
- "concordium-contracts-common",
- "concordium-rust-sdk",
- "concordium_base",
+ "concordium-cis2 5.1.0",
+ "concordium-contracts-common 8.1.1",
+ "concordium-rust-sdk 3.2.0",
+ "concordium_base 3.2.0",
  "gona_token",
  "gonana_concordium_smart_contract",
  "hex",
  "tokio",
+]
+
+[[package]]
+name = "der"
+version = "0.7.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fffa369a668c8af7dbf8b5e56c9f744fbd399949ed171606040001947de40b1c"
+dependencies = [
+ "const-oid",
+ "zeroize",
 ]
 
 [[package]]
@@ -1132,6 +1487,17 @@ checksum = "0f32d04922c60427da6f9fef14d042d9edddef64cb9d4ce0d64d0685fbeb1fd3"
 dependencies = [
  "powerfmt",
  "serde",
+]
+
+[[package]]
+name = "derivative"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1173,7 +1539,18 @@ version = "1.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "91cff35c70bba8a626e3185d8cd48cc11b5437e1a5bcd15b9b5fa3c64b6dfee7"
 dependencies = [
- "signature",
+ "signature 1.6.4",
+]
+
+[[package]]
+name = "ed25519"
+version = "2.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "115531babc129696a58c64a4fef0a8bf9e9698629fb97e9e40767d235cfbcd53"
+dependencies = [
+ "pkcs8",
+ "serde",
+ "signature 2.2.0",
 ]
 
 [[package]]
@@ -1182,11 +1559,26 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d"
 dependencies = [
- "curve25519-dalek",
- "ed25519",
+ "curve25519-dalek 3.2.0",
+ "ed25519 1.5.3",
  "rand 0.7.3",
  "serde",
  "sha2 0.9.9",
+ "zeroize",
+]
+
+[[package]]
+name = "ed25519-dalek"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a3daa8e81a3963a60642bcc1f90a670680bd4a77535faa384e9d1c79d620871"
+dependencies = [
+ "curve25519-dalek 4.1.2",
+ "ed25519 2.2.3",
+ "rand_core 0.6.4",
+ "serde",
+ "sha2 0.10.8",
+ "subtle",
  "zeroize",
 ]
 
@@ -1196,12 +1588,28 @@ version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c24f403d068ad0b359e577a77f92392118be3f3c927538f2bb544a5ecd828c6"
 dependencies = [
- "curve25519-dalek",
+ "curve25519-dalek 3.2.0",
  "hashbrown 0.12.3",
  "hex",
  "rand_core 0.6.4",
  "serde",
  "sha2 0.9.9",
+ "zeroize",
+]
+
+[[package]]
+name = "ed25519-zebra"
+version = "4.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d9ce6874da5d4415896cd45ffbc4d1cfc0c4f9c079427bd870742c30f2f65a9"
+dependencies = [
+ "curve25519-dalek 4.1.2",
+ "ed25519 2.2.3",
+ "hashbrown 0.14.2",
+ "hex",
+ "rand_core 0.6.4",
+ "serde",
+ "sha2 0.10.8",
  "zeroize",
 ]
 
@@ -1261,6 +1669,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ff"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ded41244b729663b1e574f1b4fb731469f69f79c17667b5d776b16cda0479449"
+dependencies = [
+ "bitvec",
+ "rand_core 0.6.4",
+ "subtle",
+]
+
+[[package]]
 name = "ff_derive"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1273,6 +1692,12 @@ dependencies = [
  "quote",
  "syn 1.0.109",
 ]
+
+[[package]]
+name = "fiat-crypto"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1676f435fc1dadde4d03e43f5d62b259e1ce5f40bd4ffb21db2b42ebe59c1382"
 
 [[package]]
 name = "fixed-hash"
@@ -1467,21 +1892,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6fb8d784f27acf97159b40fc4db5ecd8aa23b9ad5ef69cdd136d3bc80665f0c0"
 
 [[package]]
+name = "gona_reflective"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2 6.1.0",
+ "concordium-smart-contract-testing 4.1.0",
+ "concordium-std 10.0.0",
+ "primitive-types",
+]
+
+[[package]]
 name = "gona_token"
 version = "0.1.0"
 dependencies = [
- "concordium-cis2",
- "concordium-smart-contract-testing",
- "concordium-std",
+ "concordium-cis2 5.1.0",
+ "concordium-smart-contract-testing 3.1.0",
+ "concordium-std 8.1.0",
 ]
 
 [[package]]
 name = "gonana_concordium_smart_contract"
 version = "0.1.0"
 dependencies = [
- "concordium-rust-sdk",
- "concordium-smart-contract-testing",
- "concordium-std",
+ "concordium-rust-sdk 3.2.0",
+ "concordium-smart-contract-testing 3.1.0",
+ "concordium-std 8.1.0",
 ]
 
 [[package]]
@@ -1490,9 +1925,20 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8cbdfc48f95bef47e3daf3b9d552a1dde6311e3a5fefa43e16c59f651d56fe5b"
 dependencies = [
- "ff",
+ "ff 0.5.2",
  "rand 0.7.3",
  "rand_xorshift",
+]
+
+[[package]]
+name = "group"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0f9ef7462f7c099f518d754361858f86d8a07af53ba9af0fe635bbccb151a63"
+dependencies = [
+ "ff 0.13.0",
+ "rand_core 0.6.4",
+ "subtle",
 ]
 
 [[package]]
@@ -1531,9 +1977,22 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.13.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43a3c133739dddd0d2990f9a4bdf8eb4b21ef50e4851ca85ab661199821d510e"
+dependencies = [
+ "ahash 0.8.7",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f93e7192158dbcda357bdec5fb5788eebf8bbac027f3f33e719d29135ae84156"
+dependencies = [
+ "ahash 0.8.7",
+ "allocator-api2",
+]
 
 [[package]]
 name = "heck"
@@ -2091,8 +2550,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94c40534479a28199cd5109da27fe2fc4a4728e4fc701d9e9c1bded78f3271e4"
 dependencies = [
  "byteorder",
- "ff",
- "group",
+ "ff 0.5.2",
+ "group 0.2.0",
  "rand_core 0.5.1",
 ]
 
@@ -2187,10 +2646,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
 
 [[package]]
+name = "pkcs8"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f950b2377845cebe5cf8b5165cb3cc1a5e0fa5cfa3e1f7f55707d8fd82e0a7b7"
+dependencies = [
+ "der",
+ "spki",
+]
+
+[[package]]
 name = "pkg-config"
 version = "0.3.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "69d3587f8a9e599cc7ec2c00e331f71c4e69a5f9a4b8a6efd5b07466b9736f9a"
+
+[[package]]
+name = "platforms"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "626dec3cac7cc0e1577a2ec3fc496277ec2baa084bebad95bb6fdbfae235f84c"
 
 [[package]]
 name = "polyval"
@@ -2285,7 +2760,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b82eaa1d779e9a4bc1c3217db8ffbeabaae1dca241bf70183242128d48681cd"
 dependencies = [
  "bytes",
- "prost-derive",
+ "prost-derive 0.11.9",
+]
+
+[[package]]
+name = "prost"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "146c289cda302b98a28d40c8b3b90498d6e526dd24ac2ecea73e4e491685b94a"
+dependencies = [
+ "bytes",
+ "prost-derive 0.12.3",
 ]
 
 [[package]]
@@ -2299,6 +2784,19 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "prost-derive"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "efb6c9a1dd1def8e2124d17e83a20af56f1570d6c2d2bd9e266ccb768df3840e"
+dependencies = [
+ "anyhow",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
 ]
 
 [[package]]
@@ -2695,9 +3193,9 @@ dependencies = [
  "anyhow",
  "async-trait",
  "chrono",
- "concordium-contracts-common",
- "concordium-rust-sdk",
- "concordium_base",
+ "concordium-contracts-common 8.1.1",
+ "concordium-rust-sdk 3.2.0",
+ "concordium_base 3.2.0",
  "derive_more",
  "env_logger",
  "json",
@@ -2768,6 +3266,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "74233d3b3b2f6d4b006dc19dee745e73e2a6bfb6f93607cd3b02bd5b00797d7c"
 
 [[package]]
+name = "signature"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
+dependencies = [
+ "rand_core 0.6.4",
+]
+
+[[package]]
 name = "simdutf8"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2806,6 +3313,16 @@ checksum = "7b5fac59a5cb5dd637972e5fca70daf0523c9067fcdc4842f053dae04a18f8e9"
 dependencies = [
  "libc",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "spki"
+version = "0.7.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d91ed6c858b01f942cd56b37a94b3e0a1798290327d1236e4d9cf4eaca44d29d"
+dependencies = [
+ "base64ct",
+ "der",
 ]
 
 [[package]]
@@ -3058,8 +3575,8 @@ dependencies = [
  "hyper-timeout",
  "percent-encoding",
  "pin-project",
- "prost",
- "prost-derive",
+ "prost 0.11.9",
+ "prost-derive 0.11.9",
  "tokio",
  "tokio-stream",
  "tokio-util",
@@ -3068,6 +3585,33 @@ dependencies = [
  "tower-service",
  "tracing",
  "tracing-futures",
+]
+
+[[package]]
+name = "tonic"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d560933a0de61cf715926b9cac824d4c883c2c43142f787595e48280c40a1d0e"
+dependencies = [
+ "async-stream",
+ "async-trait",
+ "axum",
+ "base64 0.21.5",
+ "bytes",
+ "h2",
+ "http",
+ "http-body",
+ "hyper",
+ "hyper-timeout",
+ "percent-encoding",
+ "pin-project",
+ "prost 0.12.3",
+ "tokio",
+ "tokio-stream",
+ "tower",
+ "tower-layer",
+ "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -3575,9 +4119,9 @@ dependencies = [
 
 [[package]]
 name = "zeroize"
-version = "1.3.0"
+version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4756f7db3f7b5574938c3eb1c117038b8e07f95ee6718c0efad4ac21508f1efd"
+checksum = "525b4ec142c6b68a2d10f01f7bbf6755599ca3f81ea53b8431b7dd348f5fdb2d"
 dependencies = [
  "zeroize_derive",
 ]
