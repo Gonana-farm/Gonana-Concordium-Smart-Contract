@@ -78,50 +78,50 @@ async fn main() -> Result<(), Error> {
 
 
 
-    let mut modules_deployed: Vec<ModuleReference> = Vec::new();
+    // let mut modules_deployed: Vec<ModuleReference> = Vec::new();
 
-    for contract in app.module {
-        let wasm_module = get_wasm_module(contract.as_path())?;
+    // for contract in app.module {
+    //     let wasm_module = get_wasm_module(contract.as_path())?;
 
-        let deploy_result = deployer
-            .deploy_wasm_module(wasm_module, None)
-            .await
-            .context("Failed to deploy a module.")?;
+    //     let deploy_result = deployer
+    //         .deploy_wasm_module(wasm_module, None)
+    //         .await
+    //         .context("Failed to deploy a module.")?;
 
-        match deploy_result {
-            DeployResult::ModuleDeployed(module_deploy_result) => {
-                modules_deployed.push(module_deploy_result.module_reference)
-            }
-            DeployResult::ModuleExists(module_reference) => modules_deployed.push(module_reference),
-        }
-    }
+    //     match deploy_result {
+    //         DeployResult::ModuleDeployed(module_deploy_result) => {
+    //             modules_deployed.push(module_deploy_result.module_reference)
+    //         }
+    //         DeployResult::ModuleExists(module_reference) => modules_deployed.push(module_reference),
+    //     }
+    // }
 
     // Write your own deployment/initialization script below. An example is given
-    // here.
+    // // here.
 
-    let hash = "ba3e65c355fccc13d3c405ab4c54f93c0e6c59b7f9bdbd5feef39fb31e633542";
-    let hash = contracts_common::hashes::Hash::from_str(hash).unwrap().bytes;
+    // let hash = "ba3e65c355fccc13d3c405ab4c54f93c0e6c59b7f9bdbd5feef39fb31e633542";
+    // let hash = contracts_common::hashes::Hash::from_str(hash).unwrap().bytes;
 
-    let meta_data_param = SetMetadataUrlParams{
-        url: "https://ipfs.io/ipfs/QmZ7SfX3ozd1WVbEtGw74Nbjk95L2zS5CdByTCxQZhnrcP".into(),
-        hash: Some(hash)
-    };
+    // let meta_data_param = SetMetadataUrlParams{
+    //     url: "https://ipfs.io/ipfs/QmZ7SfX3ozd1WVbEtGw74Nbjk95L2zS5CdByTCxQZhnrcP".into(),
+    //     hash: Some(hash)
+    // };
 
-    let param = OwnedParameter::from_serial(&meta_data_param)?; // Example
+    // let param = OwnedParameter::from_serial(&meta_data_param)?; // Example
 
-    let init_method_name: &str = "init_gona_reflective"; // Example
+    // let init_method_name: &str = "init_gona_reflective"; // Example
 
-    let payload = InitContractPayload {
-        init_name: OwnedContractName::new(init_method_name.into())?,
-        amount: Amount::from_micro_ccd(0),
-        mod_ref: modules_deployed[0],
-        param,
-    }; // Example
+    // let payload = InitContractPayload {
+    //     init_name: OwnedContractName::new(init_method_name.into())?,
+    //     amount: Amount::from_micro_ccd(0),
+    //     mod_ref: modules_deployed[0],
+    //     param,
+    // }; // Example
 
-    let init_result: InitResult = deployer
-        .init_contract(payload, None, None)
-        .await
-        .context("Failed to initialize the contract.")?; // Example
+    // let init_result: InitResult = deployer
+    //     .init_contract(payload, None, None)
+    //     .await
+    //    .context("Failed to initialize the contract.")?; // Example
 
 
 
@@ -146,21 +146,21 @@ async fn main() -> Result<(), Error> {
 
     let transfer_params = concordium_cis2::TransferParams::from(vec![concordium_cis2::Transfer {
         from:     contracts_common::Address::Account(deployer.key.address),
-        to:       Receiver::Account(AccountAddress::from_str("36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA").unwrap()),
+        to:       Receiver::Account(AccountAddress::from_str("3epGD2Amb5NRpqT1t4ssKyNXwXqjqHUW6HTEgqKmPRLZQUeK8o").unwrap()),
         token_id: TOKEN_ID_Gona,
-        amount:   TokenAmountU256(U256::from(9090900000_u64)),
+        amount:   TokenAmountU256(U256::from(4999_u64 * DECIMALS)),
         data:     AdditionalData::empty(),
     }]);
 
 
 
-    let bytes = contracts_common::to_bytes(&mint_param); // Example
+    let bytes = contracts_common::to_bytes(&transfer_params); // Example
 
     let update_payload = transactions::UpdateContractPayload {
         amount: Amount::from_ccd(0),
         //address: init_result.contract_address,
         address: ContractAddress::new(8331, 0),
-        receive_name: OwnedReceiveName::new_unchecked("gona_reflective.mint".to_string()),
+        receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
         message: bytes.try_into()?,
     }; // Example
 
