@@ -14,7 +14,7 @@ use concordium_rust_sdk::{
     v2::{self, Endpoint, Client},
 };
 use concordium_rust_sdk::smart_contracts::types::InvokeContractResult;
-use crate::handlers::{errors::MarketplaceError, types::{PlaceOrderParam, ViewOrders}};
+use crate::handlers::{errors::MarketplaceError, types::{PlaceOrderParam, PriceData, ViewOrders}};
 
 
 const ENERGY: u64 = 60000;
@@ -328,5 +328,51 @@ async fn get_deployer()->Result<(Deployer,Client),anyhow::Error>{
     let key = std::path::Path::new("./key/3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe.export");
     let deployer = Deployer::new(concordium_client,key)?;
     Ok((deployer,client_transfer))
+}
+#[get("/oracle")]
+async fn get_price()-> Result<Json<PriceData>, MarketplaceError>{
+    // Assumes the node is running locally and gRPC API v2 can be accessed on port 20001.
+    let (deployer, mut client) = get_deployer().await.expect("error while getting deployer");
+    let contract = ContractAddress{index:7542, subindex: 0};
+    let bi = &concordium_rust_sdk::v2::BlockIdentifier::Best;
+    let payload =  String::from("CCD-USD");
+    let bytes = concordium_rust_sdk::smart_contracts::common::to_bytes(&payload);
+    // check to owned parameter
+    let parameter = smart_contracts::OwnedParameter::try_from(bytes).expect("could not unwrap parameter");
+    // receive method name on the contract
+    let receive_name = smart_contracts::OwnedReceiveName::try_from("registry.getPriceData".to_string()).unwrap();
+    let key_path = std::path::Path::new("./key/3UsPQ4MxhGNLEbYac53H7C2JHzE3Xe41zrgCdLVrp5vphx4YSe.export");
+    let wallet = concordium_rust_sdk::types::WalletAccount::from_json_file(key_path).unwrap();
+    let context = ContractContext {
+        invoker: Some(concordium_rust_sdk::types::Address::Account(wallet.address)),
+        contract,
+        amount: Amount::zero(),
+        method: receive_name.clone(),
+        parameter: parameter.clone(),
+        energy: Energy { energy: 60000000 },
+    };
+    let result = client.invoke_instance(bi, &context).await;
+    match &result.as_ref().unwrap().response {
+        InvokeContractResult::Success {
+            return_value,
+            events: _,
+            used_energy: _,
+        } => {
+            let value:PriceData = concordium_contracts_common::from_bytes(
+                &return_value.clone()
+                .expect("An error occured while trying to unwrap value").value)
+                .expect("An error occured while trying to unwrap product param");
+            Ok(Json(value))
+
+        },
+        InvokeContractResult::Failure {
+            return_value: _,
+            reason,
+            used_energy: _,
+        } => {
+            log::info!("TransactionSimulationError {:#?}.", reason);
+            Err(MarketplaceError::TransactionSimulationError)
+        }
+    }
 }
 

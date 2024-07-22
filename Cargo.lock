@@ -911,7 +911,7 @@ version = "6.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f920220277e58c8a097a3f43426196ccd6c6f57ac6780b572e73f0dcffc16379"
 dependencies = [
- "concordium-std 10.0.0",
+ "concordium-std 10.1.0",
  "primitive-types",
 ]
 
@@ -1105,9 +1105,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-smart-contract-testing"
-version = "4.1.0"
+version = "4.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "947f4357eb3da00b4de20e845e36e91e51914f4a624aaacba111504f08f6146a"
+checksum = "e2032c38f9f857a12543d88e41bce3a4a5ba3bb1552436fb944c8aec9122c09d"
 dependencies = [
  "anyhow",
  "concordium-rust-sdk 4.2.0",
@@ -1130,9 +1130,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-std"
-version = "10.0.0"
+version = "10.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "645eeaa2c81e2daa6289ef1cfcca8170419feecdb7d93d5421113880553361df"
+checksum = "8879375db69e8b0f9918faef9b349427c5ae8ba45b31870946780d16bcfe7fe7"
 dependencies = [
  "concordium-contracts-common 9.0.0",
 ]
@@ -1289,6 +1289,16 @@ dependencies = [
  "percent-encoding",
  "time",
  "version_check",
+]
+
+[[package]]
+name = "core-foundation"
+version = "0.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "194a7a9e6de53fa55116934067c844d9d749312f75c6f6d0980e8c252f8c2146"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
 ]
 
 [[package]]
@@ -1450,6 +1460,32 @@ dependencies = [
  "darling_core",
  "quote",
  "syn 2.0.39",
+]
+
+[[package]]
+name = "deploy"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "concordium-rust-sdk 4.2.0",
+ "gonana_smart_wallet",
+ "tokio",
+ "tonic 0.10.2",
+]
+
+[[package]]
+name = "deploy_script"
+version = "1.0.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "concordium-rust-sdk 4.2.0",
+ "gonana_escrow",
+ "tokio",
+ "tonic 0.10.2",
 ]
 
 [[package]]
@@ -1896,8 +1932,8 @@ name = "gona_reflective"
 version = "0.1.0"
 dependencies = [
  "concordium-cis2 6.1.0",
- "concordium-smart-contract-testing 4.1.0",
- "concordium-std 10.0.0",
+ "concordium-smart-contract-testing 4.2.0",
+ "concordium-std 10.1.0",
  "primitive-types",
 ]
 
@@ -1917,6 +1953,27 @@ dependencies = [
  "concordium-rust-sdk 3.2.0",
  "concordium-smart-contract-testing 3.1.0",
  "concordium-std 8.1.0",
+]
+
+[[package]]
+name = "gonana_escrow"
+version = "0.1.0"
+dependencies = [
+ "concordium-smart-contract-testing 4.2.0",
+ "concordium-std 10.1.0",
+]
+
+[[package]]
+name = "gonana_smart_wallet"
+version = "0.1.0"
+dependencies = [
+ "concordium-cis2 6.1.0",
+ "concordium-contracts-common 9.0.0",
+ "concordium-smart-contract-testing 4.2.0",
+ "concordium-std 10.1.0",
+ "ed25519-dalek 2.1.1",
+ "rand 0.8.5",
+ "serde",
 ]
 
 [[package]]
@@ -2532,6 +2589,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "openssl-probe"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff011a302c396a5197692431fc1948019154afc178baf7d8e37367442a4601cf"
+
+[[package]]
 name = "openssl-sys"
 version = "0.9.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2992,6 +3055,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "ring"
+version = "0.17.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c17fa4cb658e3583423e915b9f3acc01cceaee1860e33d59ebae66adc3a2dc0d"
+dependencies = [
+ "cc",
+ "cfg-if 1.0.0",
+ "getrandom 0.2.11",
+ "libc",
+ "spin",
+ "untrusted",
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "rkyv"
 version = "0.7.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3064,6 +3142,49 @@ dependencies = [
 ]
 
 [[package]]
+name = "rustls"
+version = "0.21.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f56a14d1f48b391359b22f731fd4bd7e43c97f3c50eee276f3aa09c94784d3e"
+dependencies = [
+ "log",
+ "ring",
+ "rustls-webpki",
+ "sct",
+]
+
+[[package]]
+name = "rustls-native-certs"
+version = "0.6.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a9aace74cb666635c918e9c12bc0d348266037aa8eb599b5cba565709a8dff00"
+dependencies = [
+ "openssl-probe",
+ "rustls-pemfile",
+ "schannel",
+ "security-framework",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
+dependencies = [
+ "base64 0.21.5",
+]
+
+[[package]]
+name = "rustls-webpki"
+version = "0.101.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b6275d1ee7a1cd780b64aca7726599a1dbc893b1e64144529e55c3c2f745765"
+dependencies = [
+ "ring",
+ "untrusted",
+]
+
+[[package]]
 name = "rustversion"
 version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3074,6 +3195,15 @@ name = "ryu"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad4cc8da4ef723ed60bced201181d83791ad433213d8c24efffda1eec85d741"
+
+[[package]]
+name = "schannel"
+version = "0.1.23"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fbc91545643bcf3a0bbb6569265615222618bdf33ce4ffbbd13c4bbd4c093534"
+dependencies = [
+ "windows-sys 0.52.0",
+]
 
 [[package]]
 name = "scopeguard"
@@ -3093,6 +3223,16 @@ dependencies = [
  "gona_reflective",
  "primitive-types",
  "tokio",
+]
+
+[[package]]
+name = "sct"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da046153aa2352493d6cb7da4b6e5c0c057d8a1d0a9aa8560baffdd945acd414"
+dependencies = [
+ "ring",
+ "untrusted",
 ]
 
 [[package]]
@@ -3117,6 +3257,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "152e20a0fd0519390fc43ab404663af8a0b794273d2a91d60ad4a39f13ffe110"
 dependencies = [
  "cc",
+]
+
+[[package]]
+name = "security-framework"
+version = "2.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "770452e37cad93e0a50d5abc3990d2bc351c36d0328f86cefec2f2fb206eaef6"
+dependencies = [
+ "bitflags 1.3.2",
+ "core-foundation",
+ "core-foundation-sys",
+ "libc",
+ "security-framework-sys",
+]
+
+[[package]]
+name = "security-framework-sys"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "317936bbbd05227752583946b9e66d7ce3b489f84e11a94a510b4437fef407d7"
+dependencies = [
+ "core-foundation-sys",
+ "libc",
 ]
 
 [[package]]
@@ -3208,7 +3371,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "concordium-contracts-common 8.1.1",
- "concordium-rust-sdk 3.2.0",
+ "concordium-rust-sdk 4.2.0",
  "concordium_base 3.2.0",
  "derive_more",
  "env_logger",
@@ -3328,6 +3491,12 @@ dependencies = [
  "libc",
  "windows-sys 0.48.0",
 ]
+
+[[package]]
+name = "spin"
+version = "0.9.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6980e8d7511241f8acf4aebddbb1ff938df5eebe98691418c4468d0b72a96a67"
 
 [[package]]
 name = "spki"
@@ -3517,6 +3686,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-rustls"
+version = "0.24.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c28327cf380ac148141087fbfb9de9d7bd4e84ab5d2c28fbc911d753de8a7081"
+dependencies = [
+ "rustls",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-stream"
 version = "0.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3620,7 +3799,11 @@ dependencies = [
  "percent-encoding",
  "pin-project",
  "prost 0.12.3",
+ "rustls",
+ "rustls-native-certs",
+ "rustls-pemfile",
  "tokio",
+ "tokio-rustls",
  "tokio-stream",
  "tower",
  "tower-layer",
@@ -3756,6 +3939,12 @@ dependencies = [
  "crypto-common",
  "subtle",
 ]
+
+[[package]]
+name = "untrusted"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8ecb6da28b8a351d773b68d5825ac39017e680750f980f3a1a85cd8dd28a47c1"
 
 [[package]]
 name = "url"

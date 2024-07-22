@@ -174,3 +174,16 @@ pub struct ViewOrders {
     pub buyer_address: Option<concordium_std::AccountAddress>,
     pub buyer_id: String
 }
+
+#[derive(Debug, concordium_std::Serial, Serialize,concordium_contracts_common::Deserial)]
+pub struct PriceData {
+    /// This is a placeholder, that can be used for some additional data.
+    pub data: u8,
+    /// The heartbeat specifies the interval in seconds that the price data will be refreshed in case the price stays flat.
+    /// ATTENTION: u64 is used here instead of u24 (different from the original solidity smart contracts).
+    pub heartbeat: u64,
+    /// It is the time the validators run consensus to decide on the price data.
+    pub timestamp: concordium_contracts_common::Timestamp,
+    /// The relative price.
+    pub price: u128,
+}

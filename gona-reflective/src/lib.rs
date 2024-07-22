@@ -1432,7 +1432,7 @@ fn contract_mint(
     // Update the state.
     state.mint(&TOKEN_ID_Gona, amount, &mint_to, state_builder)?;
 
-    let amount = state.reflection_from_token(amount, false)?;
+    let amount = state.token_from_reflection(amount.0)?;
 
     // Log the newly minted tokens.
     logger.log(&GonaEvent::Cis2Event(Cis2Event::Mint(MintEvent {

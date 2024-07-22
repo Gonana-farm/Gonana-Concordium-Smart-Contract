@@ -112,7 +112,7 @@ fn test_account_transfer() {
         from:     ALICE_ADDR,
         to:       Receiver::Account(BOB),
         token_id: TOKEN_ID_Gona,
-        amount:   TokenAmountU256(U256::from(10000000000000000_u64)),
+        amount:   TokenAmountU256(U256::from(1000_u64)),
         data:     AdditionalData::empty(),
     }]);
 

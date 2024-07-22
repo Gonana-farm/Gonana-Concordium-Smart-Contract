@@ -2,10 +2,7 @@ mod handlers;
 
 use actix_web::{HttpServer, App};
 use handlers::api::{
-    list_product,
-    get_listings,
-    order,
-    get_orders
+    get_listings, get_orders, get_price, list_product, order
 };
 use log::LevelFilter;
 
@@ -15,7 +12,6 @@ use log::LevelFilter;
 async fn main() -> std::io::Result<()> {
     env_logger::builder().filter_level(LevelFilter::Info).init();
 
-
     log::info!("server initialized and running at port 8088");
     HttpServer::new(move || {        
         App::new()
@@ -23,6 +19,7 @@ async fn main() -> std::io::Result<()> {
             .service(get_listings)
             .service(order)
             .service(get_orders)
+            .service(get_price)
         })
         .bind("127.0.0.1:8088")?
         .run()

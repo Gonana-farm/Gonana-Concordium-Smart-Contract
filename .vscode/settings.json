@@ -8,6 +8,8 @@
     "./Cargo.toml",
     "./gona-reflective/Cargo.toml",
     "./gona-reflective/scripts/Cargo.toml",
+    "./gonana-escrow/Cargo.toml",
+    "./gonana-escrow/deploy-script/Cargo.toml"
 
 
   ],

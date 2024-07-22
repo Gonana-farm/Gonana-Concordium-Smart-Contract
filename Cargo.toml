@@ -33,5 +33,9 @@ members = [
     "deploy-scripts",
     "gona-token",
     "gona-reflective",
-    "gona-reflective/scripts"
+    "gona-reflective/scripts",
+    "gonana-smart-wallet",
+    "gonana-smart-wallet/deploy",
+    "gonana-escrow",
+    "gonana-escrow/deploy-script"
 ]

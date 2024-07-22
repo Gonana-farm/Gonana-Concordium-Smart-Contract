@@ -96,7 +96,7 @@ async fn main() -> Result<(), Error> {
     //     }
     // }
 
-    // Write your own deployment/initialization script below. An example is given
+    // // Write your own deployment/initialization script below. An example is given
     // // here.
 
     // let hash = "ba3e65c355fccc13d3c405ab4c54f93c0e6c59b7f9bdbd5feef39fb31e633542";
@@ -144,7 +144,7 @@ async fn main() -> Result<(), Error> {
     // Create a successful transaction.
 
 
-    let transfer_params = concordium_cis2::TransferParams::from(vec![concordium_cis2::Transfer {
+    let transfer_param = concordium_cis2::TransferParams::from(vec![concordium_cis2::Transfer {
         from:     contracts_common::Address::Account(deployer.key.address),
         to:       Receiver::Account(AccountAddress::from_str("3epGD2Amb5NRpqT1t4ssKyNXwXqjqHUW6HTEgqKmPRLZQUeK8o").unwrap()),
         token_id: TOKEN_ID_Gona,
@@ -154,12 +154,12 @@ async fn main() -> Result<(), Error> {
 
 
 
-    let bytes = contracts_common::to_bytes(&transfer_params); // Example
+    let bytes = contracts_common::to_bytes(&transfer_param); // Example
 
     let update_payload = transactions::UpdateContractPayload {
         amount: Amount::from_ccd(0),
         //address: init_result.contract_address,
-        address: ContractAddress::new(8331, 0),
+        address: ContractAddress::new(8334, 0),
         receive_name: OwnedReceiveName::new_unchecked("gona_reflective.transfer".to_string()),
         message: bytes.try_into()?,
     }; // Example
@@ -192,8 +192,7 @@ async fn main() -> Result<(), Error> {
 
 
 
-//  cargo run -- --node http://node.testnet.concordium.com:20000 --account ~/36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA.export --module ~/Gonaway-Concordium-Contracts/Gona-token/dist/module.wasm.v1
-
+// cargo run -- --node http://node.testnet.concordium.com:20000 --account ~/36J5gb5QVYBvbda4cZkagN4LvVCXejyX8ScuEx8xyAQckVjBMA.export --module ~/Gonana-Concordium-Smart-Contract/gona-reflective/dist/module.wasm.v1
 
 
 
