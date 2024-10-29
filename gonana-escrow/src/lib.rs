@@ -15,8 +15,6 @@ pub struct Invoice {
     /// receiver of the transaction
     receiver: PublicKeyEd25519,
     /// The time that the transaction was made
-    timestamp: Timestamp,
-    /// Has the transaction been fufilled by the smart contract
     fufilled: bool
 }
 impl Invoice {
@@ -26,7 +24,7 @@ impl Invoice {
         payer:PublicKeyEd25519, 
         receiver:PublicKeyEd25519,
         ) -> Self {
-        Self { id, amount, payer, receiver, timestamp: Timestamp::now(), fufilled: false }
+        Self { id, amount, payer, receiver, fufilled: false }
     }
 }
 
@@ -37,8 +35,9 @@ pub struct PayParam {
    /// payer of the transaction
    pub payer: PublicKeyEd25519,
    /// receiver of the transaction
-   pub receiver: PublicKeyEd25519, 
+   pub receiver: PublicKeyEd25519,
 }
+
 pub type ContractResult<A> = Result<A, Error>;
 
 
@@ -58,6 +57,10 @@ impl State {
         invoice.fufilled = true;
         Ok(())
     }
+    fn change_smart_wallet(&mut self, smart_wallet: ContractAddress) -> ContractResult<()> {
+        self.smart_wallet = smart_wallet;
+        Ok(())
+    }
 }
 
 /// Your smart contract errors.
@@ -70,7 +73,8 @@ pub enum Error {
     CallerNotAdminError,
     InvoiceNotFoundError,
     InvoiceAlreadyPaid,
-    InvokeContractError
+    InvokeContractError,
+    InvoiceAlreadyExists
 }
 
 /// Mapping errors related to contract invocations to CustomContractError.
@@ -107,6 +111,10 @@ fn pay(ctx: &ReceiveContext, host: &mut Host<State>, amount:Amount) -> Result<()
         param.payer,
         param.receiver
     );
+    let is_occupied = host.state_mut().payments.entry(param.id.clone()).is_occupied();
+    if is_occupied {
+        return Err(Error::InvoiceAlreadyExists);
+    }
     host.state_mut().payments.entry(param.id).or_insert(invoice);
     Ok(())
     
@@ -144,4 +152,19 @@ fn withdraw(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Error> {
     
 }
 
+
+#[receive(
+    contract = "gonana_escrow",
+    name = "change_smart_wallet",
+    parameter = "ContractAddress",
+    error = "Error",
+    mutable
+)]
+fn change_smart_wallet(ctx: &ReceiveContext, host: &mut Host<State>) -> Result<(), Error> {
+    // Your code
+    let smart_wallet: ContractAddress = ctx.parameter_cursor().get()?;
+    ensure!(ctx.sender().cmp(&host.state().admin) == std::cmp::Ordering::Equal, Error::CallerNotAdminError);
+    host.state_mut().change_smart_wallet(smart_wallet)?; 
+    Ok(())   
+}
 
