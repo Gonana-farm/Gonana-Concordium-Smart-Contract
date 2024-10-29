@@ -41,12 +41,6 @@ This smart contract implements a **CIS-5 (Concordium Interoperability Specificat
 4. **nonces_registry**:
    - Maintains nonces for each public key, allowing for sequential validation of messages and preventing replay attacks.
 
-#### State Methods
-
-- **`empty()`**:
-  - Initializes an empty state for balances, implementors, and nonces.
-
----
 
 ### Core Functions
 
@@ -65,10 +59,10 @@ This smart contract implements a **CIS-5 (Concordium Interoperability Specificat
    - **Parameters**: Accepts token transfer parameters and sender’s contract address.
    - **Behavior**: Increases the balance of CIS-2 tokens for a given public key, contract, and token ID, logging a `DepositCis2Tokens` event.
 
-#### Withdrawal Functions
-
 
 ---
+
+#### Withdrawal Functions
 
 1. `withdrawCcd`
 
@@ -76,19 +70,8 @@ This function processes a list of CCD withdrawals from the wallet to specified n
 
 - **Logs**: `WithdrawCcd`, `TransferCcd`, and `Nonce` events.
 - **Parameter**: `WithdrawParameter<Amount>` - A parameter defining the details of the CCD withdrawals.
-- **Errors**: The function rejects the transaction if any of the following conditions are met:
-  - The parameter fails to parse.
-  - The message is intended for a different entry point.
-  - The `AmountType` is not CCD for the service fee or any withdrawal.
-  - The message is expired.
-  - The signature is invalid.
-  - The nonce is incorrect.
-  - The `signer` has insufficient CCD balance.
-  - The CCD receive hook function reverts on any withdrawal.
-  - Overflow occurs during balance adjustments.
-  - Any event fails to log.
 
----
+
 
 2. `withdrawCis2Tokens`
 
@@ -96,17 +79,7 @@ This function facilitates a list of token withdrawals to native accounts or smar
 
 - **Logs**: `WithdrawCis2Tokens`, `TransferCis2Tokens`, and `Nonce` events.
 - **Parameter**: `WithdrawParameter<TokenAmount>` - A parameter defining the details of the token withdrawals.
-- **Errors**: The function rejects the transaction if any of the following conditions are met:
-  - The parameter fails to parse.
-  - The message is intended for a different entry point.
-  - The `AmountType` is not a CIS-2 token for the service fee or any withdrawal.
-  - The message is expired.
-  - The signature is invalid.
-  - The nonce is incorrect.
-  - The `signer` has insufficient token balance.
-  - The `transfer` function on the CIS-2 contract fails.
-  - Overflow occurs during balance adjustments.
-  - Any event fails to log.
+
 
 --- 
 
