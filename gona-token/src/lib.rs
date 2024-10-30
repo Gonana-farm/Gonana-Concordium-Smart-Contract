@@ -6,6 +6,12 @@ use concordium_std::*;
 /// The id of the Gona token in this contract.
 pub const TOKEN_ID_GONA: ContractTokenId = TokenIdUnit();
 
+/// decimals used on the token: 1e6 
+pub const DECIMALS:u64 =  10_u64.pow(6);
+
+/// Total supply of the token: 100,000,000 * 1e6
+pub const TOTAL_SUPPLY:u64 = 100_000_000 * DECIMALS;
+
 /// Tag for the NewAdmin event.
 pub const NEW_ADMIN_EVENT_TAG: u8 = 0;
 
@@ -61,8 +67,8 @@ struct State<S: HasStateApi = StateApi> {
     /// in the situations when one wants to do a partial update not touching
     /// this field, which can be large.
     metadata_url: StateBox<MetadataUrl, S>,
-    /// Approve another address to spend tokens on your behalf
-    approvals: StateMap<Address, StateMap<Address, TokenAmountU64, S>, S>
+    total_supply: ContractTokenAmount,
+    minted: ContractTokenAmount,
 }
 #[derive(SchemaType, Serialize, PartialEq, Eq, Debug)]
 pub struct ApproveParam {
@@ -118,17 +124,11 @@ impl SpendParam {
 /// The parameter type for the contract function `unwrap`.
 /// Takes an amount of tokens and unwraps the CCD and sends it to a receiver.
 #[derive(Serialize, SchemaType)]
-pub struct UnwrapParams {
+pub struct BurnParams {
     /// The amount of tokens to unwrap.
     pub amount:   ContractTokenAmount,
     /// The owner of the tokens.
     pub owner:    Address,
-    /// The address to receive these unwrapped CCD.
-    pub receiver: Receiver,
-    /// If the `Receiver` is a contract the unwrapped CCD together with these
-    /// additional data bytes are sent to the function entrypoint specified in
-    /// the `Receiver`.
-    pub data:     AdditionalData,
 }
 
 /// The parameter type for the contract function `wrap`.
@@ -254,7 +254,8 @@ pub enum CustomContractError {
     /// User does not own tokens on the contract
     UserDoesNotOwnTokens,
     /// Amount passed is greater than amount approved to spend
-    AmountIsGreaterThanApproval
+    AmountIsGreaterThanApproval,
+    TotalSupplyHasAlreadyBeenMinted
 }
 
 pub type ContractError = Cis2Error<CustomContractError>;
@@ -307,7 +308,8 @@ impl State {
             token: state_builder.new_map(),
             implementors: state_builder.new_map(),
             metadata_url: state_builder.new_box(metadata_url),
-            approvals: state_builder.new_map()
+            total_supply: TokenAmountU64::from(TOTAL_SUPPLY),
+            minted: TokenAmountU64::from(0)
         }
     }
 
@@ -394,90 +396,20 @@ impl State {
         owner: &Address,
         state_builder: &mut StateBuilder,
     ) -> ContractResult<()> {
+        if amount == 0u64.into() {return Ok(());}
         ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
+        ensure!(self.minted + amount <= self.total_supply, 
+            ContractError::Custom(CustomContractError::TotalSupplyHasAlreadyBeenMinted));
+        
         let mut owner_state = self.token.entry(*owner).or_insert_with(|| AddressState {
             balance:   0u64.into(),
             operators: state_builder.new_set(),
         });
-
         owner_state.balance += amount;
+        self.minted += amount;
         Ok(())
     }
 
-    /// Approves an address to spend tokens belonging to the caller.
-    /// Results in an error if the token id does not exist in the state or if
-    /// the caller does not have tokens on the contract. it also results in an
-    /// error if the balance of the caller is not greater than the approved amount.
-    fn approve(
-        &mut self,
-        token_id: &ContractTokenId,
-        amount: TokenAmountU64,
-        owner: &Address,
-        spender: &Address,
-        state_builder: &mut StateBuilder,
-    ) -> ContractResult<()> {
-        ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
-        if amount == 0u64.into() {
-            return Ok(());
-        }
-        let owner_acc = self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?; //this does not work
-        ensure!(owner_acc.balance.0 >= amount.0, ContractError::InsufficientFunds); // this does not work yet
-        if self.approvals.get(owner).is_none() {
-            let mut param = state_builder.new_map();
-            param.insert(spender.to_owned(), amount);
-            self.approvals.insert(owner.to_owned(), param);
-            Ok(())
-        }else if self.approvals.get(owner).unwrap().get(spender).is_none() {
-            let mut param = state_builder.new_map();
-            param.insert(spender.to_owned(), amount);
-            self.approvals.insert(owner.to_owned(), param);
-            Ok(())
-        } else {
-            let old_amount = self.approvals.get(owner).unwrap().get(spender).unwrap().clone();
-            let amount = old_amount + amount;
-            let mut param = state_builder.new_map();
-            param.insert(spender.to_owned(), amount);
-            self.approvals.insert(owner.to_owned(), param);
-            Ok(())
-        }
-    }
-
-
-    /// A function that transfer a token for an already approved address.
-    /// it consumes the total amount of approved coins.
-    // todo() !! allow spenders to transfer part of the approved coin.
-    // take care of owner non approval error
-        // - the contract does not take care of calling transfer_from on owner parameter that does not give approvals to an address
-        // - WHY!!!!!!!!!
-    #[allow(unused_variables)]
-    fn transfer_from(
-        &mut self,
-        token_id: &ContractTokenId,
-        amount_aprv: TokenAmountU64,
-        owner: &Address,
-        spender: &Address,
-        state_builder: &mut StateBuilder,
-    ) -> ContractResult<()> {
-        ensure_eq!(token_id, &TOKEN_ID_GONA, ContractError::InvalidTokenId);
-        //ensure_eq!(self.approvals.get(owner).unwrap().get(spender).is_some(), true, ContractError::Custom(CustomContractError::InvokeTransferError)); // - THIS DOES NOT WORK
-        let  amount = self.approvals.get(owner).unwrap().get(spender).unwrap().clone(); 
-        let mut param = state_builder.new_map();
-        param.insert(spender.to_owned(), TokenAmountU64(0));
-        self.approvals.insert(owner.to_owned(), param);
-        {
-            let mut from_state =
-                self.token.get_mut(owner).ok_or(ContractError::InsufficientFunds)?; //means does not even own tokens
-            ensure!(from_state.balance >= amount, ContractError::InsufficientFunds);
-            from_state.balance -= amount;
-        }
-        let mut to_state = self.token.entry(*spender).or_insert_with(|| AddressState {
-            balance:   0u64.into(),
-            operators: state_builder.new_set(),
-        });
-        to_state.balance += amount;
-
-        Ok(())
-    }
 
     /// Burn an amount of Gona tokens.
     /// Results in an error if the token id does not exist in the state or if
@@ -575,84 +507,17 @@ fn contract_init(
     Ok(state)
 }
 
-/// Wrap an amount of CCD into Gona tokens and transfer the tokens if the sender
-/// is not the receiver.
-#[receive(
-    contract = "gona_token",
-    name = "wrap",
-    parameter = "WrapParams",
-    error = "ContractError",
-    enable_logger,
-    mutable,
-    payable
-)]
-fn contract_wrap(
-    ctx: &ReceiveContext,
-    host: &mut Host<State>,
-    amount: Amount,
-    logger: &mut impl HasLogger,
-) -> ContractResult<()> {
-    // Check that contract is not paused.
-    ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
-
-    // Parse the parameter.
-    let params: WrapParams = ctx.parameter_cursor().get()?;
-    // Get the sender who invoked this contract function.
-    let sender = ctx.sender();
-
-    let receive_address = params.to.address();
-
-    let (state, state_builder) = host.state_and_builder();
-    // Update the state.
-    state.mint(&TOKEN_ID_GONA, amount.micro_ccd.into(), &receive_address, state_builder)?;
-
-    // Log the newly minted tokens.
-    logger.log(&GonaEvent::Cis2Event(Cis2Event::Mint(MintEvent {
-        token_id: TOKEN_ID_GONA,
-        amount:   ContractTokenAmount::from(amount.micro_ccd),
-        owner:    sender,
-    })))?;
-
-    // Only logs a transfer event if the receiver is not the sender.
-    // Only executes the `OnReceivingCis2` hook if the receiver is not the sender
-    // and the receiver is a contract.
-    if sender != receive_address {
-        logger.log(&GonaEvent::Cis2Event(Cis2Event::Transfer(TransferEvent {
-            token_id: TOKEN_ID_GONA,
-            amount:   ContractTokenAmount::from(amount.micro_ccd),
-            from:     sender,
-            to:       receive_address,
-        })))?;
-
-        // If the receiver is a contract: invoke the receive hook function.
-        if let Receiver::Contract(address, function) = params.to {
-            let parameter = OnReceivingCis2Params {
-                token_id: TOKEN_ID_GONA,
-                amount:   ContractTokenAmount::from(amount.micro_ccd),
-                from:     sender,
-                data:     params.data,
-            };
-            host.invoke_contract(
-                &address,
-                &parameter,
-                function.as_entrypoint_name(),
-                Amount::zero(),
-            )?;
-        }
-    }
-    Ok(())
-}
 
 /// Unwrap an amount of Gona tokens into CCD
 #[receive(
     contract = "gona_token",
-    name = "unwrap",
-    parameter = "UnwrapParams",
+    name = "burn",
+    parameter = "BurnParams",
     error = "ContractError",
     enable_logger,
     mutable
 )]
-fn contract_unwrap(
+fn contract_burn(
     ctx: &ReceiveContext,
     host: &mut Host<State>,
     logger: &mut impl HasLogger,
@@ -661,7 +526,7 @@ fn contract_unwrap(
     ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
 
     // Parse the parameter.
-    let params: UnwrapParams = ctx.parameter_cursor().get()?;
+    let params: BurnParams = ctx.parameter_cursor().get()?;
 
     // Get the sender who invoked this contract function.
     let sender = ctx.sender();
@@ -682,21 +547,6 @@ fn contract_unwrap(
         amount:   params.amount,
         owner:    params.owner,
     })))?;
-
-    let unwrapped_amount = Amount::from_micro_ccd(params.amount.into());
-
-    // Transfer the CCD to the receiver
-    match params.receiver {
-        Receiver::Account(address) => host.invoke_transfer(&address, unwrapped_amount)?,
-        Receiver::Contract(address, function) => {
-            host.invoke_contract(
-                &address,
-                &params.data,
-                function.as_entrypoint_name(),
-                unwrapped_amount,
-            )?;
-        }
-    }
 
     Ok(())
 }
@@ -1162,75 +1012,33 @@ fn contract_upgrade<S: HasStateApi>(
 
 #[receive(
     contract = "gona_token",
-    name = "approve",
-    parameter = "ApproveParam",
-    error = "ContractError",
-    mutable
-)]
-fn approve( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> { 
-    ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
-    let (state, state_builder) = host.state_and_builder();
-    let params: ApproveParam = ctx.parameter_cursor().get()?;
-    let owner_acc = state.token.get(&ctx.sender()).ok_or(ContractError::Custom(CustomContractError::UserDoesNotOwnTokens))?; //this does not work
-    ensure!(owner_acc.balance >= params.amount, ContractError::InsufficientFunds); // this does not work yet
-    let res = state.approve(&params.token_id,params.amount, &ctx.sender(), &params.spender, state_builder)
-        .expect("something went wrong with the approve function");
-    Ok(res)
-
-}
-
-
-
-#[receive(
-    contract = "gona_token",
     name = "mint",
     parameter = "MintParam",
     error = "ContractError",
+    enable_logger,
     mutable
 )]
-fn contract_mint( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> { 
+fn contract_mint( ctx: &ReceiveContext,host: &mut Host<State>,logger: &mut impl HasLogger,) -> ContractResult<()> { 
     ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
     ensure!(host.state().admin==ctx.sender(),ContractError::Unauthorized);
     let (state, state_builder) = host.state_and_builder();
     let params: MintParam = ctx.parameter_cursor().get()?;
     let res = state.mint(&params.token_id, params.amount, &params.owner, state_builder)
         .expect("something went wrong with the approve function");
+     // Log the newly minted tokens.
+    logger.log(&GonaEvent::Cis2Event(Cis2Event::Mint(MintEvent {
+        token_id: TOKEN_ID_GONA,
+        amount:   ContractTokenAmount::from(params.amount),
+        owner:    params.owner,
+    })))?;
     Ok(res)
+   
 }
 
 
-#[receive(
-    contract = "gona_token",
-    name = "transfer_from",
-    parameter = "SpendParam",
-    error = "ContractError",
-    mutable
-)]
-fn transfer_from( ctx: &ReceiveContext,host: &mut Host<State>) -> ContractResult<()> { 
-    ensure!(!host.state().paused, ContractError::Custom(CustomContractError::ContractPaused));
-    let (state, state_builder) = host.state_and_builder();
-    let params: SpendParam = ctx.parameter_cursor().get()?;
-    ensure_eq!(state.approvals.get(&params.owner).unwrap().get(&ctx.sender()).is_some(), true, ContractError::Custom(CustomContractError::UserIsNotApprovedToSpendTokens)); 
-    let amount = state.approvals.get(&params.owner).unwrap().get(&ctx.sender()).unwrap().clone();
-    ensure!(params.amount <= amount, ContractError::Custom(CustomContractError::AmountIsGreaterThanApproval));    
-    let _res = state.transfer_from(
-        &params.token_id, 
-        params.amount,
-        &params.owner, 
-        &ctx.sender(), 
-        state_builder
-    );
-    Ok(())
-
-}
 
 // // View function to get ContractId
 #[receive(contract = "gona_token", name = "gona_id", return_value = "ContractTokenId")]
 fn view_id(_ctx: &ReceiveContext, _host: &Host<State>) -> ReceiveResult<ContractTokenId> {
     Ok(TOKEN_ID_GONA)
-}
-
-#[receive(contract = "gona_token", name = "check_approval", return_value = "bool")]
-fn check_approval(ctx: &ReceiveContext, host: &Host<State>)->ReceiveResult<bool>{
-    Ok(host.state().approvals.get(&ctx.sender()).is_some())
 }

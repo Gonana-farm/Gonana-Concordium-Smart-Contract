@@ -8,7 +8,7 @@ const ALICE: AccountAddress = AccountAddress([0; 32]);
 const ALICE_ADDR: Address = Address::Account(ALICE);
 const BOB: AccountAddress = AccountAddress([1; 32]);
 const BOB_ADDR: Address = Address::Account(BOB);
-const CHARLIE: AccountAddress = AccountAddress([2; 32]);
+//const CHARLIE: AccountAddress = AccountAddress([2; 32]);
 
 /// Initial balance of the accounts.
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(10000);
@@ -265,81 +265,9 @@ fn test_operator_can_transfer() {
     assert_eq!(balances.0, [99.into(), 1.into()]);
 }
 
-/// Test wrap and unwrap functions.
-#[test]
-fn test_wrap_unwrap() {
-    let (mut chain, contract_address, _update) = initialize_contract_with_alice_tokens();
 
-    // Wrap 100 microCCD into wCCD for Bob.
-    let wrap_params = WrapParams {
-        to:   Receiver::Account(BOB),
-        data: AdditionalData::empty(),
-    };
-    chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::from_micro_ccd(100),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.wrap".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&wrap_params).expect("Wrap params"),
-        })
-        .expect("Wrap CCD");
-    // Check that Bob now has 100 wCCD. Alice also has 100wCCD.
-    let balances = get_balances(&chain, contract_address);
-    assert_eq!(balances.0, [100.into(), 100.into()]);
 
-    // Unwrap 100 wCCD for Bob.
-    let unwrap_params = UnwrapParams {
-        amount:   100.into(),
-        owner:    BOB_ADDR,
-        receiver: Receiver::Account(BOB),
-        data:     AdditionalData::empty(),
-    };
-    let update_unwrap = chain
-        .contract_update(SIGNER, BOB, BOB_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.unwrap".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&unwrap_params).expect("Unwrap params"),
-        })
-        .expect("Unwrap wCCD");
-    // Check that Bob now has 0 wCCD. Alice still has 100 wCCD.
-    let balances = get_balances(&chain, contract_address);
-    assert_eq!(balances.0, [100.into(), 0.into()]);
 
-    // Also check that the burn event is produced.
-    let events = deserialize_update_events(&update_unwrap);
-    assert_eq!(events, [GonaEvent::Cis2Event(Cis2Event::Burn(BurnEvent {
-        token_id: TOKEN_ID_GONA,
-        amount:   100.into(),
-        owner:    BOB_ADDR,
-    })),]);
-}
-
-/// Test unwrapping to a missing account.
-#[test]
-fn test_unwrap_to_missing_account() {
-    let (mut chain, contract_address, _update) = initialize_contract_with_alice_tokens();
-
-    // Unwrap 100 wCCD for Bob.
-    let unwrap_params = UnwrapParams {
-        amount:   100.into(),
-        owner:    ALICE_ADDR,
-        receiver: Receiver::Account(CHARLIE), // The Charlie account has not been created.
-        data:     AdditionalData::empty(),
-    };
-    let update_unwrap = chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.unwrap".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&unwrap_params).expect("Unwrap params"),
-        })
-        .expect_err("Unwrap wCCD");
-
-    // Check that the correct error is returned.
-    let rv: ContractError = update_unwrap.parse_return_value().expect("ContractError return value");
-    assert_eq!(rv, ContractError::Custom(CustomContractError::InvokeTransferError));
-}
 
 /// Test that you can update the admin account.
 #[test]
@@ -449,91 +377,6 @@ fn test_pause_unpause_unauthorized() {
     let rv: ContractError = update.parse_return_value().expect("ContractError return value");
     assert_eq!(rv, ContractError::Unauthorized);
 }
-
-/// Test that one can NOT call non-admin state-mutative functions (wrap,
-/// unwrap, transfer, updateOperator) when the contract is paused.
-#[test]
-fn test_no_execution_of_state_mutative_functions_when_paused() {
-    let (mut chain, contract_address, _update) = initialize_contract_with_alice_tokens();
-
-    // Pause the contract.
-    chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.setPaused".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&true).expect("Pause params"),
-        })
-        .expect("Pause");
-
-    // Try to wrap 100 microCCD into wCCD for Bob.
-    let wrap_params = WrapParams {
-        to:   Receiver::Account(BOB),
-        data: AdditionalData::empty(),
-    };
-    let update_wrap = chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::from_micro_ccd(100),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.wrap".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&wrap_params).expect("Wrap params"),
-        })
-        .expect_err("Wrap CCD");
-
-    // Check that the correct error is returned.
-    assert_contract_paused_error(&update_wrap);
-
-    // Try to unwrap 1 wCCD for Alice.
-    let unwrap_params = UnwrapParams {
-        amount:   1.into(),
-        owner:    ALICE_ADDR,
-        receiver: Receiver::Account(ALICE),
-        data:     AdditionalData::empty(),
-    };
-    let update_unwrap = chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.unwrap".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&unwrap_params).expect("Unwrap params"),
-        })
-        .expect_err("Unwrap wCCD");
-    assert_contract_paused_error(&update_unwrap);
-
-    // Try to transfer 1 wCCD from Alice to Bob.
-    let transfer_params = TransferParams::from(vec![concordium_cis2::Transfer {
-        from:     ALICE_ADDR,
-        to:       Receiver::Account(BOB),
-        token_id: TOKEN_ID_GONA,
-        amount:   TokenAmountU64(1),
-        data:     AdditionalData::empty(),
-    }]);
-    let update_transfer = chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.transfer".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&transfer_params).expect("Transfer params"),
-        })
-        .expect_err("Transfer tokens");
-    assert_contract_paused_error(&update_transfer);
-
-    // Try to add Bob as an operator for Alice.
-    let params = UpdateOperatorParams(vec![UpdateOperator {
-        update:   OperatorUpdate::Add,
-        operator: BOB_ADDR,
-    }]);
-    let update_operator = chain
-        .contract_update(SIGNER, ALICE, ALICE_ADDR, Energy::from(10000), UpdateContractPayload {
-            amount:       Amount::zero(),
-            receive_name: OwnedReceiveName::new_unchecked("gona_token.updateOperator".to_string()),
-            address:      contract_address,
-            message:      OwnedParameter::from_serial(&params).expect("UpdateOperator params"),
-        })
-        .expect_err("Update operator");
-    assert_contract_paused_error(&update_operator);
-}
-
 // Helpers:
 
 /// Helper function that initializes the contract and wraps 100 microCCD into
@@ -645,8 +488,3 @@ fn deserialize_update_events(update: &ContractInvokeSuccess) -> Vec<GonaEvent> {
         .collect()
 }
 
-/// Check that the returned error is `ContractPaused`.
-fn assert_contract_paused_error(update: &ContractInvokeError) {
-    let rv: ContractError = update.parse_return_value().expect("ContractError return value");
-    assert_eq!(rv, ContractError::Custom(CustomContractError::ContractPaused));
-}
