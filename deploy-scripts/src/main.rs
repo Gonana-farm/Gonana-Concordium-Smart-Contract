@@ -108,7 +108,7 @@ async fn main() -> Result<(), Error> {
     // use gona_token::SetMetadataUrlParams;
 
     // let meta_data = SetMetadataUrlParams{
-    //     url: "https://gateway.pinata.cloud/ipfs/QmZBrF6HuoN12HyAznyk7gwFpnefooDbfxq3JeKTWToL1W".into(),
+    //     url: "https://gateway.pinata.cloud/ipfs/QmUuZHLRwXtKXJrRH2Pf1KED2mbJzrLo9bX8q3MLtyNbSd".into(),
     //     hash: None
     // };
 

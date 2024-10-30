@@ -17,7 +17,7 @@ const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(10000);
 const SIGNER: Signer = Signer::with_one_key();
 
 /// The metadata url for testing.
-const METADATA_URL: &str = "https://example.com";
+const METADATA_URL: &str = "https://ipfs.io/ipfs/QmUuZHLRwXtKXJrRH2Pf1KED2mbJzrLo9bX8q3MLtyNbSd";
 
 /// Test that init produces the correct logs.
 #[test]
