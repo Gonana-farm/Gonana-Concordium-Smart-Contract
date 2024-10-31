@@ -2,9 +2,9 @@
     "name": "Gona Token",
     "symbol": "GONA",
     "decimals": 6,
-    "description": "A token for the Gate network",
-    "thumbnail": { "url": "https://ipfs.io/ipfs/QmZFSh7gh3VpGD7nQ5WEn6eEV6BhUwnkcA15dSeUbMDELH" },
-    "display": { "url": "https://ipfs.io/ipfs/QmZFSh7gh3VpGD7nQ5WEn6eEV6BhUwnkcA15dSeUbMDELH" },
-    "artifact": { "url": "https://ipfs.io/ipfs/QmZFSh7gh3VpGD7nQ5WEn6eEV6BhUwnkcA15dSeUbMDELH" }  
+    "description": "A Token for the Gonana Marketplace",
+    "thumbnail": { "url": "https://ipfs.io/ipfs/Qmc8RmGFzooABdVAWRrEw2rayLSh1szKgk2nE6g8iBRDWi" },
+    "display": { "url": "https://ipfs.io/ipfs/Qmc8RmGFzooABdVAWRrEw2rayLSh1szKgk2nE6g8iBRDWi" },
+    "artifact": { "url": "https://ipfs.io/ipfs/Qmc8RmGFzooABdVAWRrEw2rayLSh1szKgk2nE6g8iBRDWi" }  
   }
   
